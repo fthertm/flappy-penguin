@@ -8,12 +8,12 @@ export default {
   <title>Flappy Penguin - misantropic</title>
   <style>
     :root {
-      --bg: #2f3542;
+      --bg: #2e3440;
       --surface: #3b4252;
-      --header: #6c8eb4;
-      --subnav: #587494;
+      --header: #5e81ac;
+      --subnav: #4c6a8f;
       --text: #eceff4;
-      --muted: #aeb8c4;
+      --muted: #d8dee9;
       --ice: #88c0d0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -67,7 +67,7 @@ export default {
       background: var(--surface);
       padding: 16px;
       border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -90,6 +90,7 @@ export default {
       color: var(--muted);
     }
     footer a { color: var(--ice); text-decoration: none; }
+    footer a:hover { color: #ebcb8b; }
   </style>
 </head>
 <body>
@@ -113,7 +114,7 @@ export default {
     </div>
   </main>
 
-  <footer>Created with 🤍 by <a href="https://misantropic.net">fatih</a></footer>
+  <footer>Created with 🤍 by <a href="https://fatihertem.com" target="_blank" rel="noopener">fatih</a></footer>
 
   <script>
     const canvas = document.getElementById('game');
