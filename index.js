@@ -11,7 +11,6 @@ export default {
   <link rel="icon" type="image/svg+xml" href="${icons}favicon.svg">
   <link rel="apple-touch-icon" href="${icons}apple-touch-icon.png">
   <link rel="shortcut icon" href="${icons}favicon.ico">
-  <link rel="stylesheet" href="https://cloudflare.com">
   <style>
     :root {
       --bg: #2e3440;
@@ -46,9 +45,11 @@ export default {
       align-items: center;
       gap: 14px;
     }
-    .brand i {
-      font-size: 30px;
-      color: var(--text);
+    .brand img {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
     }
     header .sub { font-size: 11px; opacity: 0.9; line-height: 1.1; }
     header h1 { font-size: 19px; font-weight: 500; letter-spacing: -0.4px; line-height: 1.2; }
@@ -106,7 +107,7 @@ export default {
 <body>
   <header>
     <div class="brand">
-      <i class="fas fa-igloo"></i>
+      <img src="${icons}favicon.svg" alt="misantropic">
       <div>
         <div class="sub">fewer letters, fewer people.</div>
         <h1>misantropic</h1>
