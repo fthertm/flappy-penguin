@@ -215,59 +215,41 @@ export default {
     }
 
     function drawIceColumn(x, y, w, h, isTop) {
-      ctx.fillStyle = '#5e81ac';
-      ctx.fillRect(x, y, w, h);
-
-      ctx.fillStyle = '#4c6a8f';
-      ctx.fillRect(x + w - 8, y, 8, h);
-
-      ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(x + 4, y, 5, h);
-
-      ctx.fillStyle = '#5e81ac';
+      ctx.save();
       ctx.beginPath();
       if (isTop) {
-        let base = y + h - 2;
-        ctx.moveTo(x, base);
-        ctx.lineTo(x + w * 0.22, base + 14);
-        ctx.lineTo(x + w * 0.42, base + 4);
-        ctx.lineTo(x + w * 0.62, base + 20);
-        ctx.lineTo(x + w * 0.80, base + 5);
-        ctx.lineTo(x + w * 0.92, base + 12);
+        let base = y + h;
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w, y);
         ctx.lineTo(x + w, base);
+        ctx.lineTo(x + w * 0.72, base + 11);
+        ctx.lineTo(x + w * 0.56, base + 3);
+        ctx.lineTo(x + w * 0.32, base + 17);
+        ctx.lineTo(x, base);
       } else {
-        let base = y + 2;
-        ctx.moveTo(x, base);
-        ctx.lineTo(x + w * 0.22, base - 14);
-        ctx.lineTo(x + w * 0.42, base - 4);
-        ctx.lineTo(x + w * 0.62, base - 20);
-        ctx.lineTo(x + w * 0.80, base - 5);
-        ctx.lineTo(x + w * 0.92, base - 12);
+        let base = y;
+        ctx.moveTo(x, y + h);
+        ctx.lineTo(x + w, y + h);
         ctx.lineTo(x + w, base);
+        ctx.lineTo(x + w * 0.72, base - 11);
+        ctx.lineTo(x + w * 0.56, base - 3);
+        ctx.lineTo(x + w * 0.32, base - 17);
+        ctx.lineTo(x, base);
       }
       ctx.closePath();
+
+      ctx.fillStyle = '#5e81ac';
       ctx.fill();
 
+      ctx.clip();
+
       ctx.fillStyle = '#88c0d0';
-      ctx.beginPath();
-      if (isTop) {
-        let base = y + h - 2;
-        ctx.moveTo(x + 4, base);
-        ctx.lineTo(x + w * 0.22, base + 14);
-        ctx.lineTo(x + 11, base);
-        ctx.moveTo(x + w * 0.54, base);
-        ctx.lineTo(x + w * 0.62, base + 20);
-        ctx.lineTo(x + w * 0.65, base);
-      } else {
-        let base = y + 2;
-        ctx.moveTo(x + 4, base);
-        ctx.lineTo(x + w * 0.22, base - 14);
-        ctx.lineTo(x + 11, base);
-        ctx.moveTo(x + w * 0.54, base);
-        ctx.lineTo(x + w * 0.62, base - 20);
-        ctx.lineTo(x + w * 0.65, base);
-      }
-      ctx.fill();
+      ctx.fillRect(x + 4, y - 20, 5, h + 40);
+
+      ctx.fillStyle = '#4c6a8f';
+      ctx.fillRect(x + w - 7, y - 20, 7, h + 40);
+
+      ctx.restore();
     }
 
     function loop() {
@@ -289,7 +271,7 @@ export default {
         y += vel;
         frame++;
         if (frame % 95 === 0) {
-          let gap = 145;
+          let gap = 142;
           let topH = Math.floor(Math.random() * (canvas.height - gap - 90)) + 45;
           pipes.push({ x: canvas.width, top: topH, bottom: topH + gap, passed: false });
         }
@@ -303,7 +285,7 @@ export default {
         drawIceColumn(p.x, -4, 46, p.top + 4, true);
         drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
 
-        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 && (y + 2 < p.top + 12 || y + pSize - 2 > p.bottom - 12)) {
+        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 && (y + 2 < p.top + 11 || y + pSize - 2 > p.bottom - 11)) {
           gameOver = true;
         }
         if (!p.passed && p.x + 44 < pX) {
