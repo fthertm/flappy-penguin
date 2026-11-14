@@ -48,6 +48,8 @@ export default {
       display: flex;
       align-items: center;
       gap: 14px;
+      text-decoration: none;
+      color: var(--text);
     }
     .brand img {
       width: 34px;
@@ -55,8 +57,7 @@ export default {
       object-fit: contain;
       filter: brightness(0) invert(1);
     }
-    header .sub { font-size: 11px; opacity: 0.9; line-height: 1.1; text-transform: lowercase; }
-    header h1 { font-size: 19px; font-weight: 500; letter-spacing: -0.4px; line-height: 1.2; }
+    header h1 { font-size: 19px; font-weight: 500; letter-spacing: -0.4px; line-height: 1; }
     .back-btn {
       color: var(--text);
       text-decoration: none;
@@ -128,10 +129,7 @@ export default {
   <header>
     <div class="brand">
       <img src="${icons}favicon.svg" alt="misantropic">
-      <div>
-        <div class="sub">fewer letters, fewer people.</div>
-        <h1>misantropic</h1>
-      </div>
+      <h1>misantropic</h1>
     </div>
     <a class="back-btn" href="https://${domain}">← Dashboard</a>
   </header>
