@@ -89,7 +89,7 @@ export default {
       max-height: 100%;
     }
     canvas {
-      background: #1f242d;
+      background: #242933;
       border-radius: 6px;
       display: block;
       cursor: pointer;
@@ -105,17 +105,27 @@ export default {
       color: var(--muted);
       flex-shrink: 0;
     }
-    footer a { color: var(--ice); text-decoration: none; font-weight: 600; }
+    footer a {
+      color: var(--ice);
+      text-decoration: none;
+      font-weight: 600;
+    }
     footer a:hover { color: #ebcb8b; }
     .nord-heart {
       color: #88c0d0 !important;
       margin: 0 3px;
       display: inline-flex;
       align-items: center;
-      vertical-align: -2px;
+      vertical-align: -0.125em;
       transform-origin: center;
       transition: color 0.25s ease;
       cursor: pointer;
+    }
+    .nord-heart svg {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
+      display: block;
     }
     .nord-heart:hover {
       color: #bf616a !important;
@@ -144,128 +154,117 @@ export default {
     </div>
   </main>
 
-  <footer>Created with <span class="nord-heart" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 512 512" fill="currentColor"><path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z"/></svg></span> by <a href="https://fatihertem.com" target="_blank" rel="noopener">fatih</a></footer>
+  <footer>Created with <span class="nord-heart" aria-hidden="true"><svg viewBox="0 0 512 512"><path d="M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z"/></svg></span> by <a href="https://fatihertem.com" target="_blank" rel="noopener">fatih</a></footer>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
-    // Web Audio API - Doğal arcade ses efektleri
-    let audioCtx = null;
-    let muted = localStorage.getItem('flappy_penguin_muted') === 'true';
+    const flakes = Array.from({ length: 34 }, () => ({
+      x: Math.random() * 480,
+      y: Math.random() * 440,
+      r: Math.random() * 2 + 1,
+      s: Math.random() * 0.6 + 0.3
+    }));
 
-    function initAudio() {
+    const groundH = 34;
+    const playH = canvas.height - groundH;
+    let groundOffset = 0;
+
+    let particles = [];
+
+    let muted = localStorage.getItem('flappy_penguin_muted') === '1';
+    let audioCtx = null;
+
+    function getAudio() {
       if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) audioCtx = new AudioContext();
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
       }
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+      return audioCtx;
     }
 
-    function playFlapSound() {
+    function playSound(type) {
       if (muted) return;
-      initAudio();
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-      const bufferSize = Math.floor(audioCtx.sampleRate * 0.08);
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
-      }
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
+      try {
+        const ac = getAudio();
+        if (!ac) return;
+        const now = ac.currentTime;
 
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(380, now);
-      filter.frequency.exponentialRampToValueAtTime(750, now + 0.08);
-      filter.Q.value = 1.8;
+        if (type === 'flap') {
+          const bufferSize = Math.floor(ac.sampleRate * 0.08);
+          const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+          }
+          const noise = ac.createBufferSource();
+          noise.buffer = buffer;
 
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.16, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          const filter = ac.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(320, now);
+          filter.frequency.exponentialRampToValueAtTime(650, now + 0.08);
+          filter.Q.value = 1.4;
 
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioCtx.destination);
-      noise.start(now);
+          const gain = ac.createGain();
+          gain.gain.setValueAtTime(0.09, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ac.destination);
+          noise.start(now);
+        } else if (type === 'score') {
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(987.77, now);
+          osc.frequency.setValueAtTime(1318.51, now + 0.065);
+          gain.gain.setValueAtTime(0.075, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(now);
+          osc.stop(now + 0.24);
+        } else if (type === 'crash') {
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(42, now + 0.2);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        }
+      } catch (e) {}
     }
 
-    function playScoreSound() {
-      if (muted) return;
-      initAudio();
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(987.77, now);
-      osc.frequency.setValueAtTime(1318.51, now + 0.065);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.22);
-    }
-
-    function playHitSound() {
-      if (muted) return;
-      initAudio();
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(150, now);
-      osc.frequency.exponentialRampToValueAtTime(42, now + 0.18);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.18);
-    }
-
-    const groundH = 36;
-    const playH = canvas.height - groundH;
-    let groundOffset = 0;
-
-    const flakes = Array.from({ length: 34 }, () => ({
-      x: Math.random() * 480,
-      y: Math.random() * playH,
-      r: Math.random() * 1.8 + 0.8,
-      s: Math.random() * 0.6 + 0.3
-    }));
-
-    const bgMountains = [
-      { x: 0, w: 150, h: 95 },
-      { x: 110, w: 170, h: 125 },
-      { x: 245, w: 145, h: 88 },
-      { x: 355, w: 185, h: 118 }
-    ];
-
-    let particles = [];
-    function spawnSnowBurst(px, py, count) {
+    function spawnParticles(px, py, color, count) {
       for (let i = 0; i < count; i++) {
         particles.push({
           x: px,
           y: py,
-          vx: (Math.random() - 0.5) * 3.8,
-          vy: (Math.random() - 0.8) * 3.5,
-          r: Math.random() * 2.5 + 1.2,
-          life: 1.0
+          vx: (Math.random() - 0.5) * 4.5,
+          vy: (Math.random() - 0.7) * 4.5,
+          life: 1,
+          size: Math.random() * 2.5 + 1.5,
+          color: color
         });
       }
     }
 
     let y = 175, vel = 0, gravity = 0.36, jump = -6.5;
-    let pipes = [], frame = 0, score = 0, best = parseInt(localStorage.getItem('flappy_penguin_best') || '0', 10);
-    let dying = false, gameOver = false, started = false;
-    let auroraTime = 0;
+    let pipes = [], frame = 0, score = 0;
+    let best = parseInt(localStorage.getItem('flappy_penguin_best') || '0', 10);
+    let gameOver = false, falling = false, started = false;
+    let bgOffset = 0;
 
     function reset() {
       y = 175;
@@ -274,35 +273,52 @@ export default {
       particles = [];
       frame = 0;
       score = 0;
-      dying = false;
       gameOver = false;
+      falling = false;
       started = true;
-      flap();
+      vel = jump;
+      playSound('flap');
+      spawnParticles(98, y + 18, 'rgba(236, 239, 244, 0.75)', 5);
     }
 
     function flap() {
       if (!started || gameOver) {
         reset();
-        return;
+      } else if (!falling) {
+        vel = jump;
+        playSound('flap');
+        spawnParticles(98, y + 18, 'rgba(236, 239, 244, 0.75)', 5);
       }
-      if (dying) return;
-      vel = jump;
-      playFlapSound();
-      spawnSnowBurst(98, y + 20, 4);
+    }
+
+    function triggerCrash() {
+      if (falling || gameOver) return;
+      falling = true;
+      vel = -2.5;
+      playSound('crash');
+      spawnParticles(108, y + 14, '#88c0d0', 14);
+      if (score > best) {
+        best = score;
+        localStorage.setItem('flappy_penguin_best', best);
+      }
     }
 
     function toggleMute(e) {
       if (e) e.stopPropagation();
       muted = !muted;
-      localStorage.setItem('flappy_penguin_muted', muted);
+      localStorage.setItem('flappy_penguin_muted', muted ? '1' : '0');
     }
 
     window.addEventListener('keydown', e => {
-      if (e.code === 'Space') { e.preventDefault(); flap(); }
-      if (e.code === 'KeyM') { toggleMute(); }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        flap();
+      } else if (e.code === 'KeyM') {
+        toggleMute();
+      }
     });
 
-    function handlePointer(clientX, clientY, e) {
+    function handlePointer(clientX, clientY) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
@@ -310,108 +326,168 @@ export default {
       const cy = (clientY - rect.top) * scaleY;
 
       if (cx >= canvas.width - 42 && cx <= canvas.width - 10 && cy >= 10 && cy <= 42) {
-        toggleMute(e);
+        toggleMute();
         return;
       }
       flap();
     }
 
-    canvas.addEventListener('mousedown', e => handlePointer(e.clientX, e.clientY, e));
+    canvas.addEventListener('mousedown', e => handlePointer(e.clientX, e.clientY));
     canvas.addEventListener('touchstart', e => {
       e.preventDefault();
-      const t = e.touches[0];
-      handlePointer(t.clientX, t.clientY, e);
+      if (e.touches.length > 0) {
+        handlePointer(e.touches[0].clientX, e.touches[0].clientY);
+      }
     }, { passive: false });
 
     function drawAurora() {
-      auroraTime += 0.012;
+      const t = frame * 0.012;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
+      ctx.filter = 'blur(12px)';
 
-      // Kıvrımlı iki aurora perdesi (keskin alt sınır + yukarı süzülen dikey ışık huzmeleri)
-      const curtains = [
-        { baseY: 118, amp: 16, freq: 0.013, phase: auroraTime, height: 95, c1: 'rgba(136, 192, 208, 0.22)', c2: 'rgba(163, 190, 140, 0.16)' },
-        { baseY: 92,  amp: 12, freq: 0.017, phase: -auroraTime * 0.8 + 1.5, height: 78, c1: 'rgba(163, 190, 140, 0.18)', c2: 'rgba(180, 142, 173, 0.12)' }
-      ];
+      const grad1 = ctx.createLinearGradient(0, 15, 0, 145);
+      grad1.addColorStop(0, 'rgba(136, 192, 208, 0)');
+      grad1.addColorStop(0.45, 'rgba(163, 190, 140, 0.14)');
+      grad1.addColorStop(0.8, 'rgba(136, 192, 208, 0.22)');
+      grad1.addColorStop(1, 'rgba(136, 192, 208, 0)');
 
-      for (const c of curtains) {
-        // Dikey ışık huzmeleri (rays)
-        for (let x = 0; x <= canvas.width; x += 6) {
-          const wave = Math.sin(x * c.freq + c.phase) * c.amp + Math.cos(x * c.freq * 0.5 - c.phase * 0.7) * 6;
-          const bottomY = c.baseY + wave;
-          const rayPulse = 0.55 + 0.45 * Math.sin(x * 0.045 + auroraTime * 2.2);
-          const rayH = c.height * (0.65 + 0.35 * Math.cos(x * 0.03 - auroraTime * 1.5));
-
-          const grad = ctx.createLinearGradient(0, bottomY, 0, bottomY - rayH);
-          grad.addColorStop(0, 'rgba(163, 190, 140, 0)');
-          grad.addColorStop(0.12, c.c1);
-          grad.addColorStop(0.45, c.c2);
-          grad.addColorStop(1, 'rgba(136, 192, 208, 0)');
-
-          ctx.fillStyle = grad;
-          ctx.globalAlpha = rayPulse;
-          ctx.fillRect(x, bottomY - rayH, 4, rayH);
-        }
-
-        // Keskin alt ışık kenarı (ribbon edge)
-        ctx.globalAlpha = 0.35;
-        ctx.strokeStyle = '#a3be8c';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for (let x = 0; x <= canvas.width; x += 6) {
-          const wave = Math.sin(x * c.freq + c.phase) * c.amp + Math.cos(x * c.freq * 0.5 - c.phase * 0.7) * 6;
-          const bottomY = c.baseY + wave - 6;
-          if (x === 0) ctx.moveTo(x, bottomY);
-          else ctx.lineTo(x, bottomY);
-        }
-        ctx.stroke();
+      ctx.fillStyle = grad1;
+      ctx.beginPath();
+      ctx.moveTo(-20, 15);
+      for (let x = -20; x <= canvas.width + 20; x += 20) {
+        const topWave = 30 + Math.sin(x * 0.012 + t) * 14 + Math.cos(x * 0.025 - t * 0.7) * 8;
+        ctx.lineTo(x, topWave);
       }
+      for (let x = canvas.width + 20; x >= -20; x -= 20) {
+        const botWave = 115 + Math.sin(x * 0.015 + t * 1.1) * 18 + Math.sin(x * 0.03 + t) * 10;
+        ctx.lineTo(x, botWave);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      const grad2 = ctx.createLinearGradient(0, 25, 0, 130);
+      grad2.addColorStop(0, 'rgba(180, 142, 173, 0)');
+      grad2.addColorStop(0.5, 'rgba(180, 142, 173, 0.12)');
+      grad2.addColorStop(0.85, 'rgba(136, 192, 208, 0.16)');
+      grad2.addColorStop(1, 'rgba(180, 142, 173, 0)');
+
+      ctx.fillStyle = grad2;
+      ctx.beginPath();
+      ctx.moveTo(-20, 25);
+      for (let x = -20; x <= canvas.width + 20; x += 20) {
+        const topWave = 42 + Math.cos(x * 0.014 - t * 0.8) * 15;
+        ctx.lineTo(x, topWave);
+      }
+      for (let x = canvas.width + 20; x >= -20; x -= 20) {
+        const botWave = 102 + Math.cos(x * 0.018 + t * 0.9) * 16;
+        ctx.lineTo(x, botWave);
+      }
+      ctx.closePath();
+      ctx.fill();
 
       ctx.restore();
     }
 
-    function drawBackground() {
-      // Kutup ışıkları
-      drawAurora();
-
-      // Uzak buzul dağ siluetleri
-      ctx.fillStyle = '#262c37';
-      for (const m of bgMountains) {
-        ctx.beginPath();
-        ctx.moveTo(m.x, playH);
-        ctx.lineTo(m.x + m.w * 0.5, playH - m.h);
-        ctx.lineTo(m.x + m.w, playH);
-        ctx.closePath();
-        ctx.fill();
+    function drawBackgroundMountains() {
+      ctx.fillStyle = '#29303d';
+      ctx.beginPath();
+      ctx.moveTo(0, playH);
+      const step = 120;
+      const shift = bgOffset % step;
+      for (let x = -step - shift; x < canvas.width + step * 2; x += step) {
+        ctx.lineTo(x + step * 0.35, playH - 85);
+        ctx.lineTo(x + step * 0.65, playH - 52);
+        ctx.lineTo(x + step * 0.85, playH - 105);
+        ctx.lineTo(x + step, playH - 35);
       }
+      ctx.lineTo(canvas.width, playH);
+      ctx.closePath();
+      ctx.fill();
     }
 
     function drawGround() {
       ctx.fillStyle = '#3b4252';
       ctx.fillRect(0, playH, canvas.width, groundH);
 
-      ctx.fillStyle = '#eceff4';
-      ctx.fillRect(0, playH, canvas.width, 5);
-
       ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(0, playH + 5, canvas.width, 3);
+      ctx.fillRect(0, playH, canvas.width, 4);
+      ctx.fillStyle = '#eceff4';
+      ctx.fillRect(0, playH + 4, canvas.width, 4);
 
-      ctx.fillStyle = '#2e3440';
-      for (let gx = -24 + groundOffset; gx < canvas.width + 24; gx += 24) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, playH + 8, canvas.width, groundH - 8);
+      ctx.clip();
+
+      ctx.fillStyle = '#4c566a';
+      const stripeW = 24;
+      const shift = groundOffset % stripeW;
+      for (let x = -stripeW - shift; x < canvas.width + stripeW; x += stripeW) {
         ctx.beginPath();
-        ctx.moveTo(gx, playH + 12);
-        ctx.lineTo(gx + 10, playH + 12);
-        ctx.lineTo(gx + 4, playH + groundH);
-        ctx.lineTo(gx - 6, playH + groundH);
+        ctx.moveTo(x, playH + 8);
+        ctx.lineTo(x + 12, playH + 8);
+        ctx.lineTo(x + 4, canvas.height);
+        ctx.lineTo(x - 8, canvas.height);
         ctx.closePath();
         ctx.fill();
       }
+      ctx.restore();
+    }
+
+    function drawIceBlockPipe(x, y, w, h, isTop) {
+      if (h <= 0) return;
+
+      const capH = Math.min(20, h);
+      const capOverhang = 4;
+      const capW = w + capOverhang * 2;
+      const capX = x - capOverhang;
+      const capY = isTop ? (y + h - capH) : y;
+
+      ctx.fillStyle = '#5e81ac';
+      ctx.fillRect(x, y, w, h);
+
+      ctx.fillStyle = '#88c0d0';
+      ctx.fillRect(x + 5, y, 7, h);
+
+      ctx.fillStyle = 'rgba(236, 239, 244, 0.28)';
+      ctx.fillRect(x + 15, y, 3, h);
+
+      ctx.fillStyle = '#4c6a8f';
+      ctx.fillRect(x + w - 10, y, 10, h);
+
+      ctx.fillStyle = '#5e81ac';
+      ctx.beginPath();
+      ctx.roundRect(capX, capY, capW, capH, 3);
+      ctx.fill();
+
+      ctx.fillStyle = '#88c0d0';
+      ctx.fillRect(capX + 5, capY + 2, 8, capH - 4);
+
+      ctx.fillStyle = '#4c6a8f';
+      ctx.fillRect(capX + capW - 11, capY + 2, 9, capH - 4);
+
+      if (!isTop) {
+        ctx.fillStyle = '#eceff4';
+        ctx.beginPath();
+        ctx.roundRect(capX, capY, capW, 6, [3, 3, 1, 1]);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#8fbcbb';
+        ctx.fillRect(capX + 2, capY + capH - 3, capW - 4, 3);
+      }
+
+      ctx.strokeStyle = '#2e3440';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(capX, capY, capW, capH, 3);
+      ctx.stroke();
     }
 
     function drawPenguin(x, y) {
       ctx.save();
       ctx.translate(x + 15, y + 14);
-      const angle = dying ? Math.min(Math.PI / 2, vel * 0.12) : Math.max(-0.35, Math.min(0.45, vel * 0.055));
+      const angle = falling ? Math.PI * 0.45 : Math.max(-0.35, Math.min(0.45, vel * 0.055));
       ctx.rotate(angle);
 
       ctx.fillStyle = '#d08770';
@@ -454,65 +530,22 @@ export default {
       ctx.restore();
     }
 
-    function drawIceBlockPipe(x, y, w, h, isTop) {
-      if (h <= 0) return;
-      const capH = 18;
-      const capOverhang = 4;
-
-      ctx.fillStyle = '#5e81ac';
-      ctx.fillRect(x, y, w, h);
-
-      ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(x + 4, y, 6, h);
-
-      ctx.fillStyle = '#4c6a8f';
-      ctx.fillRect(x + w - 9, y, 9, h);
-
-      ctx.fillStyle = '#435d7e';
-      ctx.fillRect(x, y, 2, h);
-      ctx.fillRect(x + w - 2, y, 2, h);
-
-      const capY = isTop ? (y + h - capH) : y;
-      const capX = x - capOverhang;
-      const capW = w + capOverhang * 2;
-
-      ctx.fillStyle = '#688db9';
-      ctx.fillRect(capX, capY, capW, capH);
-
-      ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(capX + 4, capY, 7, capH);
-
-      ctx.fillStyle = '#4c6a8f';
-      ctx.fillRect(capX + capW - 10, capY, 10, capH);
-
-      if (isTop) {
-        ctx.fillStyle = '#88c0d0';
-        ctx.fillRect(capX, capY + capH - 4, capW, 4);
-      } else {
-        ctx.fillStyle = '#eceff4';
-        ctx.fillRect(capX, capY, capW, 5);
-        ctx.fillStyle = '#d8dee9';
-        ctx.fillRect(capX, capY + 5, capW, 2);
-      }
-
-      ctx.strokeStyle = '#3b4e6b';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(capX + 0.75, capY + 0.75, capW - 1.5, capH - 1.5);
-    }
-
     function drawMuteButton() {
       const bx = canvas.width - 38;
       const by = 12;
+      const size = 26;
+
       ctx.save();
-      ctx.fillStyle = 'rgba(59, 66, 82, 0.75)';
+      ctx.fillStyle = 'rgba(46, 52, 64, 0.72)';
       ctx.beginPath();
-      ctx.roundRect(bx, by, 26, 26, 6);
+      ctx.roundRect(bx, by, size, size, 6);
       ctx.fill();
 
-      ctx.strokeStyle = '#d8dee9';
-      ctx.fillStyle = '#d8dee9';
-      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = 'rgba(136, 192, 208, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
+      ctx.fillStyle = muted ? '#bf616a' : '#eceff4';
       ctx.beginPath();
       ctx.moveTo(bx + 6, by + 10);
       ctx.lineTo(bx + 10, by + 10);
@@ -523,46 +556,33 @@ export default {
       ctx.closePath();
       ctx.fill();
 
+      ctx.strokeStyle = muted ? '#bf616a' : '#88c0d0';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
       if (muted) {
-        ctx.strokeStyle = '#bf616a';
-        ctx.beginPath();
         ctx.moveTo(bx + 17, by + 10);
         ctx.lineTo(bx + 22, by + 16);
         ctx.moveTo(bx + 22, by + 10);
         ctx.lineTo(bx + 17, by + 16);
-        ctx.stroke();
       } else {
-        ctx.beginPath();
         ctx.arc(bx + 15, by + 13, 3.5, -0.7, 0.7);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(bx + 15, by + 13, 6.5, -0.7, 0.7);
-        ctx.stroke();
+        ctx.moveTo(bx + 17, by + 8.5);
+        ctx.arc(bx + 15, by + 13, 6.2, -0.7, 0.7);
       }
+      ctx.stroke();
       ctx.restore();
-    }
-
-    function triggerCrash() {
-      if (dying || gameOver) return;
-      dying = true;
-      vel = -2.5;
-      playHitSound();
-      spawnSnowBurst(108, y + 14, 16);
-      if (score > best) {
-        best = score;
-        localStorage.setItem('flappy_penguin_best', best);
-      }
     }
 
     function loop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      drawBackground();
+      drawAurora();
+      drawBackgroundMountains();
 
-      ctx.fillStyle = 'rgba(236, 239, 244, 0.28)';
+      ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
       for (const f of flakes) {
         f.y += f.s;
-        f.x -= 0.45;
+        f.x -= 0.4;
         if (f.y > playH) { f.y = 0; f.x = Math.random() * canvas.width; }
         if (f.x < 0) f.x = canvas.width;
         ctx.beginPath();
@@ -570,44 +590,47 @@ export default {
         ctx.fill();
       }
 
-      const speed = 2.4;
-      if (started && !gameOver && !dying) {
-        groundOffset = (groundOffset - speed) % 24;
+      if (started && !gameOver) {
         vel += gravity;
         y += vel;
-        frame++;
-        if (frame % 92 === 0) {
-          let gap = 128;
-          let minTop = 48;
-          let maxTop = playH - gap - 48;
-          let topH = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
-          pipes.push({ x: canvas.width + 6, top: topH, bottom: topH + gap, passed: false });
+
+        if (!falling) {
+          groundOffset += 2.4;
+          bgOffset += 0.45;
+          frame++;
+          if (frame % 92 === 0) {
+            let gap = 128;
+            let minTop = 44;
+            let maxTop = playH - gap - 44;
+            let topH = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
+            pipes.push({ x: canvas.width + 6, top: topH, bottom: topH + gap, passed: false });
+          }
         }
-      } else if (dying) {
-        vel += gravity * 1.15;
-        y += vel;
       }
 
       const pX = 95, pSize = 26, pipeW = 48;
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
-        if (started && !gameOver && !dying) p.x -= speed;
+        if (started && !gameOver && !falling) p.x -= 2.4;
 
         drawIceBlockPipe(p.x, 0, pipeW, p.top, true);
         drawIceBlockPipe(p.x, p.bottom, pipeW, playH - p.bottom, false);
 
-        if (!dying && !gameOver) {
-          if (pX + pSize - 3 > p.x - 2 && pX + 3 < p.x + pipeW + 2 && (y + 3 < p.top || y + pSize - 3 > p.bottom)) {
+        if (!falling && !gameOver) {
+          const hitX = (pX + pSize - 3 > p.x - 2) && (pX + 3 < p.x + pipeW + 2);
+          const hitY = (y + 3 < p.top) || (y + pSize - 3 > p.bottom);
+          if (hitX && hitY) {
             triggerCrash();
           }
-          if (!p.passed && p.x + pipeW < pX) {
-            score++;
-            p.passed = true;
-            playScoreSound();
-            if (score > best) {
-              best = score;
-              localStorage.setItem('flappy_penguin_best', best);
-            }
+        }
+
+        if (!p.passed && !falling && p.x + pipeW < pX) {
+          score++;
+          p.passed = true;
+          playSound('score');
+          if (score > best) {
+            best = score;
+            localStorage.setItem('flappy_penguin_best', best);
           }
         }
         if (p.x + pipeW + 10 < 0) pipes.splice(i, 1);
@@ -619,31 +642,36 @@ export default {
         const pt = particles[i];
         pt.x += pt.vx;
         pt.y += pt.vy;
-        pt.vy += 0.14;
+        pt.vy += 0.12;
         pt.life -= 0.035;
         if (pt.life <= 0) {
           particles.splice(i, 1);
-        } else {
-          ctx.fillStyle = 'rgba(236, 239, 244, ' + pt.life + ')';
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
-          ctx.fill();
+          continue;
         }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.life);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
 
       if (y + pSize >= playH) {
         y = playH - pSize;
         if (!gameOver) {
-          if (!dying) playHitSound();
-          dying = false;
+          if (!falling) {
+            playSound('crash');
+            spawnParticles(108, y + 20, '#eceff4', 12);
+          }
           gameOver = true;
+          falling = false;
           if (score > best) {
             best = score;
             localStorage.setItem('flappy_penguin_best', best);
           }
         }
-      }
-      if (y < 0) {
+      } else if (y < 0) {
         y = 0;
         vel = 0;
       }
@@ -651,12 +679,14 @@ export default {
       drawPenguin(pX, y);
 
       ctx.save();
-      ctx.shadowColor = 'rgba(20, 24, 31, 0.9)';
-      ctx.shadowBlur = 5;
+      ctx.shadowColor = 'rgba(18, 22, 28, 0.98)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
       ctx.fillStyle = '#eceff4';
       ctx.font = '600 22px system-ui, sans-serif';
       ctx.fillText(score, 18, 36);
-      ctx.fillStyle = '#d8dee9';
+      ctx.fillStyle = '#e5e9f0';
       ctx.font = '600 13px system-ui, sans-serif';
       ctx.fillText('Best: ' + best, 18, 56);
       ctx.restore();
@@ -664,22 +694,22 @@ export default {
       drawMuteButton();
 
       if (!started || gameOver) {
-        ctx.fillStyle = 'rgba(31, 36, 45, 0.82)';
+        ctx.fillStyle = 'rgba(36, 41, 51, 0.85)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#eceff4';
         ctx.font = '600 22px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(gameOver ? 'Frozen!' : 'Flappy Penguin', canvas.width / 2, 165);
+        ctx.fillText(gameOver ? 'Frozen!' : 'Flappy Penguin', canvas.width / 2, 175);
 
         if (gameOver) {
           ctx.fillStyle = '#d8dee9';
           ctx.font = '14px system-ui, sans-serif';
-          ctx.fillText('Score: ' + score + '  |  Best: ' + best, canvas.width / 2, 200);
+          ctx.fillText('Score: ' + score + '  |  Best: ' + best, canvas.width / 2, 210);
         }
 
         ctx.fillStyle = '#88c0d0';
         ctx.font = '14px system-ui, sans-serif';
-        ctx.fillText('Space / Click / Tap to flap', canvas.width / 2, gameOver ? 235 : 210);
+        ctx.fillText('Space / Click / Tap to flap', canvas.width / 2, gameOver ? 245 : 225);
         ctx.textAlign = 'left';
       }
 
