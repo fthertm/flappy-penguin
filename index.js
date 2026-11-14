@@ -116,7 +116,8 @@ export default {
       margin: 0 3px;
       display: inline-flex;
       align-items: center;
-      vertical-align: middle;
+      vertical-align: -2px;
+      transform-origin: center;
       transition: color 0.25s ease;
       cursor: pointer;
     }
@@ -134,9 +135,6 @@ export default {
       0%, 28%, 70%, 100% { transform: scale(1); }
       14% { transform: scale(1.28); }
       42% { transform: scale(1.18); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .nord-heart:hover { animation: none; }
     }
   </style>
 </head>
@@ -161,34 +159,110 @@ export default {
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+
+    // Web Audio API (harici ses dosyası gerektirmeyen retro efektler)
+    let audioCtx = null;
+    function playTone(freq, type, duration, vol = 0.08, slideTo = null) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playFlapSound() { playTone(320, 'sine', 0.11, 0.08, 520); }
+    function playScoreSound() {
+      playTone(587.33, 'triangle', 0.09, 0.09);
+      setTimeout(() => playTone(880, 'triangle', 0.14, 0.09), 75);
+    }
+    function playCrashSound() { playTone(160, 'sawtooth', 0.25, 0.11, 45); }
+
+    // Kar taneleri ve çarpışma parçacıkları
     const flakes = Array.from({ length: 34 }, () => ({
       x: Math.random() * 480,
       y: Math.random() * 440,
       r: Math.random() * 2 + 1,
       s: Math.random() * 0.6 + 0.3
     }));
+    let particles = [];
 
-    const bgRidges = [
-      { x: 30, w: 90, h: 110, top: true },
-      { x: 180, w: 120, h: 150, top: true },
-      { x: 360, w: 100, h: 120, top: true },
-      { x: 500, w: 110, h: 135, top: true },
-      { x: 10, w: 110, h: 125, top: false },
-      { x: 160, w: 130, h: 155, top: false },
-      { x: 330, w: 95, h: 115, top: false },
-      { x: 480, w: 120, h: 140, top: false }
+    // Paralaks arka plan buzul siluetleri
+    const bgPeaks = [
+      { x: 0, w: 150, topH: 95, botH: 85 },
+      { x: 140, w: 170, topH: 60, botH: 115 },
+      { x: 300, w: 160, topH: 110, botH: 70 },
+      { x: 450, w: 180, topH: 75, botH: 100 }
     ];
 
-    let y = 190, vel = 0, gravity = 0.36, jump = -6.5;
-    let pipes = [], frame = 0, score = 0, best = parseInt(localStorage.getItem('flappy_penguin_best') || '0', 10), gameOver = false, started = false;
+    const GROUND_H = 38;
+    const PLAY_H = canvas.height - GROUND_H;
+    let groundOffset = 0;
+
+    let y = 175, vel = 0, gravity = 0.36, jump = -6.5;
+    let pipes = [], frame = 0, score = 0;
+    let best = parseInt(localStorage.getItem('flappy_penguin_best') || '0', 10);
+    let gameOver = false, started = false;
+
+    function spawnParticles(px, py, color, count = 12) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3.2 + 0.8;
+        particles.push({
+          x: px,
+          y: py,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          r: Math.random() * 2.5 + 1.2,
+          color
+        });
+      }
+    }
 
     function reset() {
-      y = 190; vel = 0; pipes = []; frame = 0; score = 0; gameOver = false; started = true;
+      y = 175;
+      vel = 0;
+      pipes = [];
+      particles = [];
+      frame = 0;
+      score = 0;
+      gameOver = false;
+      started = true;
+      vel = jump;
+      playFlapSound();
+      spawnParticles(105, y + 18, '#eceff4', 5);
+    }
+
+    function triggerGameOver(px, py) {
+      if (!gameOver) {
+        gameOver = true;
+        playCrashSound();
+        spawnParticles(px, py, '#88c0d0', 18);
+        if (score > best) {
+          best = score;
+          localStorage.setItem('flappy_penguin_best', best);
+        }
+      }
     }
 
     function flap() {
-      if (!started || gameOver) reset();
-      else vel = jump;
+      if (!started || gameOver) {
+        reset();
+      } else {
+        vel = jump;
+        playFlapSound();
+        spawnParticles(98, y + 18, 'rgba(236, 239, 244, 0.7)', 4);
+      }
     }
 
     window.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); flap(); } });
@@ -240,208 +314,258 @@ export default {
       ctx.restore();
     }
 
-    function drawBackgroundIce() {
-      ctx.fillStyle = 'rgba(76, 106, 143, 0.14)';
-      for (const r of bgRidges) {
-        if (started && !gameOver) {
-          r.x -= 0.45;
-          if (r.x + r.w < 0) r.x = canvas.width + 20;
-        }
-        ctx.beginPath();
-        if (r.top) {
-          ctx.moveTo(r.x, 0);
-          ctx.lineTo(r.x + r.w, 0);
-          ctx.lineTo(r.x + r.w * 0.72, r.h * 0.65);
-          ctx.lineTo(r.x + r.w * 0.48, r.h);
-          ctx.lineTo(r.x + r.w * 0.25, r.h * 0.55);
-        } else {
-          ctx.moveTo(r.x, canvas.height);
-          ctx.lineTo(r.x + r.w * 0.22, canvas.height - r.h * 0.6);
-          ctx.lineTo(r.x + r.w * 0.52, canvas.height - r.h);
-          ctx.lineTo(r.x + r.w * 0.78, canvas.height - r.h * 0.55);
-          ctx.lineTo(r.x + r.w, canvas.height);
-        }
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
+    // TwoBitCode Flappy-Penguin tarzı klasik buz bloğu/sütun + Nord kristal başlıkları
+    function drawIceBlockPipe(x, y, w, h, isTop) {
+      if (h <= 0) return;
+      const capH = 22;
+      const capOver = 4;
 
-    function drawIceColumn(x, y, w, h, isTop) {
       ctx.save();
-      ctx.beginPath();
 
       if (isTop) {
-        const tipY = y + h + 16;
-        ctx.moveTo(x - 5, y);
-        ctx.lineTo(x + w + 5, y);
-        ctx.lineTo(x + w * 0.84, y + h * 0.48);
-        ctx.lineTo(x + w * 0.76, y + h * 0.72);
-        ctx.lineTo(x + w * 0.66, y + h * 0.58);
-        ctx.lineTo(x + w * 0.48, tipY);
-        ctx.lineTo(x + w * 0.28, y + h * 0.62);
-        ctx.lineTo(x + w * 0.16, y + h * 0.76);
-        ctx.lineTo(x + w * 0.10, y + h * 0.45);
+        const bodyH = Math.max(0, h - capH);
+        // Ana buz gövdesi
+        ctx.fillStyle = '#5e81ac';
+        ctx.fillRect(x, y, w, bodyH);
+
+        // Gövde sol parlama & sağ gölge
+        ctx.fillStyle = '#88c0d0';
+        ctx.fillRect(x + 4, y, 6, bodyH);
+        ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
+        ctx.fillRect(x + 12, y, 2, bodyH);
+        ctx.fillStyle = '#4c6a8f';
+        ctx.fillRect(x + w - 9, y, 9, bodyH);
+
+        // Buz bloğu başlığı (Cap)
+        const capY = y + bodyH;
+        ctx.fillStyle = '#5e81ac';
+        ctx.beginPath();
+        ctx.roundRect(x - capOver, capY, w + capOver * 2, capH, 3);
+        ctx.fill();
+
+        // Başlık üst kar/buz kenarı
+        ctx.fillStyle = '#eceff4';
+        ctx.fillRect(x - capOver + 2, capY, w + capOver * 2 - 4, 3);
+
+        // Başlık parlama & gölge
+        ctx.fillStyle = '#88c0d0';
+        ctx.fillRect(x - capOver + 4, capY + 3, 7, capH - 4);
+        ctx.fillStyle = '#4c6a8f';
+        ctx.fillRect(x + w + capOver - 10, capY + 3, 9, capH - 4);
+
+        // Başlık çerçeve çizgisi
+        ctx.strokeStyle = '#3b4252';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(x - capOver, capY, w + capOver * 2, capH, 3);
+        ctx.stroke();
+
+        // Küçük sarkan buz dişleri
+        ctx.fillStyle = '#88c0d0';
+        ctx.beginPath();
+        ctx.moveTo(x + 6, capY + capH);
+        ctx.lineTo(x + 11, capY + capH + 6);
+        ctx.lineTo(x + 16, capY + capH);
+        ctx.moveTo(x + w - 18, capY + capH);
+        ctx.lineTo(x + w - 13, capY + capH + 5);
+        ctx.lineTo(x + w - 8, capY + capH);
+        ctx.fill();
       } else {
-        const base = y + h;
-        const tipY = y - 16;
-        ctx.moveTo(x - 7, base);
-        ctx.lineTo(x + w * 0.08, y + h * 0.52);
-        ctx.lineTo(x + w * 0.20, y + h * 0.28);
-        ctx.lineTo(x + w * 0.30, y + h * 0.38);
-        ctx.lineTo(x + w * 0.48, tipY);
-        ctx.lineTo(x + w * 0.68, y + h * 0.32);
-        ctx.lineTo(x + w * 0.78, y + h * 0.22);
-        ctx.lineTo(x + w * 0.90, y + h * 0.55);
-        ctx.lineTo(x + w + 7, base);
+        const bodyY = y + capH;
+        const bodyH = Math.max(0, h - capH);
+
+        // Ana buz gövdesi
+        ctx.fillStyle = '#5e81ac';
+        ctx.fillRect(x, bodyY, w, bodyH);
+
+        // Gövde sol parlama & sağ gölge
+        ctx.fillStyle = '#88c0d0';
+        ctx.fillRect(x + 4, bodyY, 6, bodyH);
+        ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
+        ctx.fillRect(x + 12, bodyY, 2, bodyH);
+        ctx.fillStyle = '#4c6a8f';
+        ctx.fillRect(x + w - 9, bodyY, 9, bodyH);
+
+        // Buz bloğu başlığı (Cap)
+        ctx.fillStyle = '#5e81ac';
+        ctx.beginPath();
+        ctx.roundRect(x - capOver, y, w + capOver * 2, capH, 3);
+        ctx.fill();
+
+        // Başlık üst kar tabakası
+        ctx.fillStyle = '#eceff4';
+        ctx.beginPath();
+        ctx.roundRect(x - capOver + 1, y, w + capOver * 2 - 2, 5, [3, 3, 1, 1]);
+        ctx.fill();
+
+        // Başlık parlama & gölge
+        ctx.fillStyle = '#88c0d0';
+        ctx.fillRect(x - capOver + 4, y + 5, 7, capH - 6);
+        ctx.fillStyle = '#4c6a8f';
+        ctx.fillRect(x + w + capOver - 10, y + 5, 9, capH - 6);
+
+        // Başlık çerçeve çizgisi
+        ctx.strokeStyle = '#3b4252';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(x - capOver, y, w + capOver * 2, capH, 3);
+        ctx.stroke();
       }
-
-      ctx.closePath();
-      ctx.clip();
-
-      ctx.fillStyle = '#5e81ac';
-      ctx.fillRect(x - 10, y - 24, w + 20, h + 48);
-
-      ctx.fillStyle = '#4c6a8f';
-      ctx.beginPath();
-      if (isTop) {
-        ctx.moveTo(x + w * 0.48, y);
-        ctx.lineTo(x + w + 8, y);
-        ctx.lineTo(x + w + 8, y + h + 24);
-        ctx.lineTo(x + w * 0.48, y + h + 24);
-      } else {
-        ctx.moveTo(x + w * 0.48, y - 24);
-        ctx.lineTo(x + w + 10, y - 24);
-        ctx.lineTo(x + w + 10, y + h + 8);
-        ctx.lineTo(x + w * 0.48, y + h + 8);
-      }
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#88c0d0';
-      ctx.beginPath();
-      if (isTop) {
-        ctx.moveTo(x + 2, y);
-        ctx.lineTo(x + 14, y);
-        ctx.lineTo(x + w * 0.46, y + h + 20);
-        ctx.lineTo(x + w * 0.36, y + h + 20);
-      } else {
-        ctx.moveTo(x + w * 0.36, y - 20);
-        ctx.lineTo(x + w * 0.46, y - 20);
-        ctx.lineTo(x + 14, y + h);
-        ctx.lineTo(x + 1, y + h);
-      }
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
-      ctx.beginPath();
-      if (isTop) {
-        ctx.moveTo(x + 17, y);
-        ctx.lineTo(x + 21, y);
-        ctx.lineTo(x + w * 0.48, y + h + 18);
-        ctx.lineTo(x + w * 0.45, y + h + 18);
-      } else {
-        ctx.moveTo(x + w * 0.45, y - 18);
-        ctx.lineTo(x + w * 0.48, y - 18);
-        ctx.lineTo(x + 21, y + h);
-        ctx.lineTo(x + 17, y + h);
-      }
-      ctx.closePath();
-      ctx.fill();
 
       ctx.restore();
     }
 
-    function checkConeCollision(pX, pY, pSize, pipe) {
-      const colW = 46;
-      const centerX = pipe.x + colW * 0.48;
-      const pLeft = pX + 3;
-      const pRight = pX + pSize - 3;
-      const pTop = pY + 3;
-      const pBottom = pY + pSize - 3;
+    function drawGround() {
+      const gy = PLAY_H;
+      // Buzul taban
+      ctx.fillStyle = '#3b4252';
+      ctx.fillRect(0, gy, canvas.width, GROUND_H);
 
-      const topTip = pipe.top + 14;
-      if (pTop < topTip) {
-        const ratio = Math.max(0, Math.min(1, pTop / Math.max(1, topTip)));
-        const halfWidth = (colW * 0.56) * (1 - ratio * 0.78);
-        if (pRight > centerX - halfWidth && pLeft < centerX + halfWidth) {
-          return true;
-        }
+      // Üst kar örtüsü
+      ctx.fillStyle = '#eceff4';
+      ctx.fillRect(0, gy, canvas.width, 7);
+
+      // Buz şeridi
+      ctx.fillStyle = '#88c0d0';
+      ctx.fillRect(0, gy + 7, canvas.width, 5);
+
+      // Kayar diyagonal buz blok çizgileri
+      ctx.fillStyle = '#4c6a8f';
+      const step = 28;
+      for (let gx = -step + (groundOffset % step); gx < canvas.width + step; gx += step) {
+        ctx.beginPath();
+        ctx.moveTo(gx, gy + 12);
+        ctx.lineTo(gx + 14, gy + 12);
+        ctx.lineTo(gx + 6, canvas.height);
+        ctx.lineTo(gx - 8, canvas.height);
+        ctx.closePath();
+        ctx.fill();
       }
 
-      const bottomTip = pipe.bottom - 14;
-      if (pBottom > bottomTip) {
-        const totalH = Math.max(1, canvas.height - bottomTip);
-        const ratio = Math.max(0, Math.min(1, (canvas.height - pBottom) / totalH));
-        const halfWidth = (colW * 0.58) * (1 - ratio * 0.78);
-        if (pRight > centerX - halfWidth && pLeft < centerX + halfWidth) {
-          return true;
-        }
-      }
-
-      return false;
+      // Üst sınır çizgisi
+      ctx.fillStyle = '#2e3440';
+      ctx.fillRect(0, gy - 1, canvas.width, 1.5);
     }
 
     function loop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      drawBackgroundIce();
+      // Arka plan kırıklı buzul siluetleri
+      ctx.fillStyle = 'rgba(59, 66, 82, 0.35)';
+      for (const bp of bgPeaks) {
+        if (started && !gameOver) bp.x -= 0.45;
+        if (bp.x + bp.w < 0) bp.x = canvas.width + 20;
 
+        ctx.beginPath();
+        ctx.moveTo(bp.x, 0);
+        ctx.lineTo(bp.x + bp.w * 0.35, bp.topH * 0.65);
+        ctx.lineTo(bp.x + bp.w * 0.52, bp.topH);
+        ctx.lineTo(bp.x + bp.w * 0.72, bp.topH * 0.55);
+        ctx.lineTo(bp.x + bp.w, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(bp.x, PLAY_H);
+        ctx.lineTo(bp.x + bp.w * 0.28, PLAY_H - bp.botH * 0.6);
+        ctx.lineTo(bp.x + bp.w * 0.48, PLAY_H - bp.botH);
+        ctx.lineTo(bp.x + bp.w * 0.75, PLAY_H - bp.botH * 0.5);
+        ctx.lineTo(bp.x + bp.w, PLAY_H);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Kar taneleri
       ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
       for (const f of flakes) {
         f.y += f.s;
         f.x -= 0.4;
-        if (f.y > canvas.height) { f.y = 0; f.x = Math.random() * canvas.width; }
+        if (f.y > PLAY_H) { f.y = 0; f.x = Math.random() * canvas.width; }
         if (f.x < 0) f.x = canvas.width;
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
         ctx.fill();
       }
 
+      const speed = Math.min(3.4, 2.3 + score * 0.04);
+
       if (started && !gameOver) {
         vel += gravity;
         y += vel;
+        groundOffset -= speed;
         frame++;
         if (frame % 95 === 0) {
-          let gap = 152;
-          let topH = Math.floor(Math.random() * (canvas.height - gap - 90)) + 45;
+          let gap = 132;
+          let topH = Math.floor(Math.random() * (PLAY_H - gap - 90)) + 45;
           pipes.push({ x: canvas.width, top: topH, bottom: topH + gap, passed: false });
         }
+      } else if (!started) {
+        groundOffset -= 1.2;
       }
 
-      const pX = 95, pSize = 26;
+      const pX = 95, pSize = 26, pipeW = 48;
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
-        if (started && !gameOver) p.x -= 2.3;
+        if (started && !gameOver) p.x -= speed;
 
-        drawIceColumn(p.x, -4, 46, p.top + 4, true);
-        drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
+        drawIceBlockPipe(p.x, 0, pipeW, p.top, true);
+        drawIceBlockPipe(p.x, p.bottom, pipeW, PLAY_H - p.bottom, false);
 
-        if (checkConeCollision(pX, y, pSize, p)) {
-          gameOver = true;
+        // Tam blok çarpışma kontrolü
+        if (
+          pX + pSize - 3 > p.x - 2 &&
+          pX + 3 < p.x + pipeW + 2 &&
+          (y + 3 < p.top || y + pSize - 3 > p.bottom)
+        ) {
+          triggerGameOver(pX + pSize / 2, y + pSize / 2);
         }
-        if (!p.passed && p.x + 44 < pX) {
+
+        if (!p.passed && p.x + pipeW < pX) {
           score++;
           p.passed = true;
+          playScoreSound();
           if (score > best) {
             best = score;
             localStorage.setItem('flappy_penguin_best', best);
           }
         }
-        if (p.x + 56 < 0) pipes.splice(i, 1);
+        if (p.x + pipeW + 10 < 0) pipes.splice(i, 1);
       }
 
-      if (y + pSize > canvas.height || y < 0) {
-        gameOver = true;
-        if (score > best) {
-          best = score;
-          localStorage.setItem('flappy_penguin_best', best);
-        }
+      // Zemin ve tavan çarpışması
+      if (y + pSize >= PLAY_H) {
+        y = PLAY_H - pSize;
+        triggerGameOver(pX + pSize / 2, PLAY_H);
+      } else if (y < 0) {
+        y = 0;
+        vel = 0;
       }
+
+      drawGround();
       drawPenguin(pX, y);
 
+      // Parçacık efektleri
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.life -= 0.035;
+        if (pt.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = pt.life;
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Skor ve Rekor (yüksek kontrastlı gölgeli)
       ctx.save();
-      ctx.shadowColor = 'rgba(27, 31, 39, 0.85)';
+      ctx.shadowColor = 'rgba(27, 31, 39, 0.9)';
       ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 1;
       ctx.shadowOffsetY = 1;
@@ -449,7 +573,7 @@ export default {
       ctx.font = '600 22px system-ui, sans-serif';
       ctx.fillText(score, 18, 36);
       ctx.fillStyle = '#d8dee9';
-      ctx.font = '600 13px system-ui, sans-serif';
+      ctx.font = '13px system-ui, sans-serif';
       ctx.fillText('Best: ' + best, 18, 56);
       ctx.restore();
 
@@ -459,17 +583,17 @@ export default {
         ctx.fillStyle = '#eceff4';
         ctx.font = '600 22px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(gameOver ? 'Frozen!' : 'Flappy Penguin', canvas.width / 2, 175);
+        ctx.fillText(gameOver ? 'Frozen!' : 'Flappy Penguin', canvas.width / 2, 165);
         
         if (gameOver) {
           ctx.fillStyle = '#d8dee9';
           ctx.font = '14px system-ui, sans-serif';
-          ctx.fillText('Score: ' + score + '  |  Best: ' + best, canvas.width / 2, 210);
+          ctx.fillText('Score: ' + score + '  |  Best: ' + best, canvas.width / 2, 200);
         }
 
         ctx.fillStyle = '#88c0d0';
         ctx.font = '14px system-ui, sans-serif';
-        ctx.fillText('Space / Click / Tap to flap', canvas.width / 2, gameOver ? 245 : 225);
+        ctx.fillText('Space / Click / Tap to flap', canvas.width / 2, gameOver ? 235 : 215);
         ctx.textAlign = 'left';
       }
 
