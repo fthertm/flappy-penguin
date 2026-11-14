@@ -4,5 +4,5 @@ compatibility_date = "2026-11-14"
 workers_dev = false
 
 routes = [
-  { pattern = "flap.misantropic.net", custom_domain = true }
+  "misantropic.net/flap*"
 ]
