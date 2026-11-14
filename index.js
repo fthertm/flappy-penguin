@@ -106,6 +106,22 @@ export default {
     }
     footer a { color: var(--ice); text-decoration: none; }
     footer a:hover { color: #ebcb8b; }
+    .nord-heart {
+      color: #88c0d0 !important;
+      margin: 0 3px;
+      display: inline-block;
+      transition: color 0.25s ease;
+      cursor: pointer;
+    }
+    .nord-heart:hover {
+      color: #bf616a !important;
+      animation: nord-heartbeat 1.2s ease-in-out infinite;
+    }
+    @keyframes nord-heartbeat {
+      0%, 28%, 70%, 100% { transform: scale(1); }
+      14% { transform: scale(1.28); }
+      42% { transform: scale(1.18); }
+    }
   </style>
 </head>
 <body>
@@ -127,7 +143,7 @@ export default {
     </div>
   </main>
 
-  <footer>Created with 🤍 by <a href="https://fatihertem.com" target="_blank" rel="noopener">fatih</a></footer>
+  <footer>Created with <span class="nord-heart">🤍</span> by <a href="https://fatihertem.com" target="_blank" rel="noopener">fatih</a></footer>
 
   <script>
     const canvas = document.getElementById('game');
@@ -303,7 +319,7 @@ export default {
 
         ctx.fillStyle = '#88c0d0';
         ctx.font = '14px system-ui, sans-serif';
-        ctx.fillText('Click or press Space to fly', canvas.width / 2, gameOver ? 245 : 225);
+        ctx.fillText('Space / Click / Tap to flap', canvas.width / 2, gameOver ? 245 : 225);
         ctx.textAlign = 'left';
       }
 
