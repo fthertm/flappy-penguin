@@ -1,7 +1,7 @@
 export default {
   async fetch(request) {
     const domain = "misantropic.net";
-    const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 512'%3E%3Cpath fill='%2388c0d0' d='M320 32C194.7 32 91.5 120.2 67.2 237.4c-11.2 5.1-23.2 8.6-35.9 10.2C13.8 250 0 265.1 0 283.4c0 15.6 11.2 28.7 26 31.4 39.1 7.2 78.5 12.8 118 16.7C159.2 402.1 232.2 464 320 464s160.8-61.9 176-132.5c39.5-3.9 78.9-9.5 118-16.7 14.8-2.7 26-15.8 26-31.4 0-18.3-13.8-33.4-31.3-35.8-12.7-1.7-24.7-5.1-35.9-10.2C548.5 120.2 445.3 32 320 32zM320 96c88.4 0 160 71.6 160 160s-71.6 160-160 160S160 344.4 160 256 231.6 96 320 96zm0 64c-53 0-96 43-96 96s43 96 96 96 96-43 96-96-43-96-96-96z'/%3E%3C/svg%3E";
+    const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%23eceff4' d='M320 33.9c-10.5-1.2-21.2-1.9-32-1.9C135.4 32 10.6 150.6 0.7 300.6L0 311.5V352h176V272c0-44.2 35.8-80 80-80h64c44.2 0 80 35.8 80 80v80h176V311.5l-.7-10.9C567 175.4 476.3 72.1 358.8 40.8L320 33.9zM256 224c-26.5 0-48 21.5-48 48V480H368V272c0-26.5-21.5-48-48-48H256zM0 384v64c0 17.7 14.3 32 32 32H176V384H0zm400 0v96H544c17.7 0 32-14.3 32-32V384H400z'/%3E%3C/svg%3E";
     
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -15,7 +15,7 @@ export default {
     :root {
       --bg: #20242d;
       --surface: #2b303c;
-      --header-bg: #3b4252;
+      --header-bg: #5e81ac;
       --accent: #88c0d0;
       --text: #eceff4;
       --muted: #99a7be;
@@ -47,37 +47,39 @@ export default {
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
     .brand img {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       object-fit: contain;
     }
     .brand-text .sub {
-      font-size: 10px;
-      opacity: 0.75;
+      font-size: 11px;
+      opacity: 0.9;
       text-transform: lowercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.2px;
+      line-height: 1.2;
     }
     .brand-text h1 {
-      font-size: 17px;
-      font-weight: 600;
-      letter-spacing: -0.3px;
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: -0.4px;
+      line-height: 1.1;
     }
     .back-btn {
       color: var(--text);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.15);
       padding: 7px 14px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       transition: all 0.2s ease;
     }
     .back-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.28);
     }
     main {
       flex: 1;
@@ -113,8 +115,8 @@ export default {
     }
     .game-footer {
       display: flex;
-      justify-content: space-between;
       width: 100%;
+      justify-content: space-between;
       padding: 0 4px;
       font-size: 13px;
       color: var(--muted);
