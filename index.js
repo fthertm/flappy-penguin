@@ -1,7 +1,7 @@
 export default {
   async fetch(request) {
     const domain = "misantropic.net";
-    const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%235e81ac'/%3E%3Cellipse cx='16' cy='17' rx='7' ry='8' fill='%23eceff4'/%3E%3Ccircle cx='14' cy='15' r='1.5' fill='%232e3440'/%3E%3Cpolygon points='16,16 20,18 16,20' fill='%23ebcb8b'/%3E%3C/svg%3E";
+    const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 512'%3E%3Cpath fill='%2388c0d0' d='M320 32C194.7 32 91.5 120.2 67.2 237.4c-11.2 5.1-23.2 8.6-35.9 10.2C13.8 250 0 265.1 0 283.4c0 15.6 11.2 28.7 26 31.4 39.1 7.2 78.5 12.8 118 16.7C159.2 402.1 232.2 464 320 464s160.8-61.9 176-132.5c39.5-3.9 78.9-9.5 118-16.7 14.8-2.7 26-15.8 26-31.4 0-18.3-13.8-33.4-31.3-35.8-12.7-1.7-24.7-5.1-35.9-10.2C548.5 120.2 445.3 32 320 32zM320 96c88.4 0 160 71.6 160 160s-71.6 160-160 160S160 344.4 160 256 231.6 96 320 96zm0 64c-53 0-96 43-96 96s43 96 96 96 96-43 96-96-43-96-96-96z'/%3E%3C/svg%3E";
     
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -57,7 +57,7 @@ export default {
     .brand-text .sub {
       font-size: 10px;
       opacity: 0.75;
-      text-transform: uppercase;
+      text-transform: lowercase;
       letter-spacing: 0.5px;
     }
     .brand-text h1 {
@@ -278,10 +278,20 @@ export default {
         ctx.fillRect(p.x + pipeWidth - 12, 0, 6, p.top);
 
         ctx.fillStyle = '#5e81ac';
-        ctx.fillRect(p.x - 4, p.top - 20, pipeWidth + 8, 20);
-        ctx.strokeRect(p.x - 4, p.top - 20, pipeWidth + 8, 20);
-        ctx.fillStyle = '#8fbcbb';
-        ctx.fillRect(p.x + 2, p.top - 16, 6, 12);
+        ctx.fillRect(p.x - 4, p.top - 24, pipeWidth + 8, 24);
+        ctx.strokeRect(p.x - 4, p.top - 24, pipeWidth + 8, 24);
+        
+        ctx.fillStyle = '#88c0d0';
+        ctx.beginPath();
+        ctx.moveTo(p.x - 4, p.top);
+        ctx.lineTo(p.x + 8, p.top + 16);
+        ctx.lineTo(p.x + 20, p.top);
+        ctx.lineTo(p.x + 32, p.top + 14);
+        ctx.lineTo(p.x + 44, p.top);
+        ctx.lineTo(p.x + 56, p.top + 18);
+        ctx.lineTo(p.x + pipeWidth + 4, p.top);
+        ctx.closePath();
+        ctx.fill();
 
         let bottomH = H - p.bottom;
         ctx.fillStyle = '#4c6a8f';
@@ -293,10 +303,20 @@ export default {
         ctx.fillRect(p.x + pipeWidth - 12, p.bottom, 6, bottomH);
 
         ctx.fillStyle = '#5e81ac';
-        ctx.fillRect(p.x - 4, p.bottom, pipeWidth + 8, 20);
-        ctx.strokeRect(p.x - 4, p.bottom, pipeWidth + 8, 20);
-        ctx.fillStyle = '#8fbcbb';
-        ctx.fillRect(p.x + 2, p.bottom + 4, 6, 12);
+        ctx.fillRect(p.x - 4, p.bottom, pipeWidth + 8, 24);
+        ctx.strokeRect(p.x - 4, p.bottom, pipeWidth + 8, 24);
+        
+        ctx.fillStyle = '#88c0d0';
+        ctx.beginPath();
+        ctx.moveTo(p.x - 4, p.bottom);
+        ctx.lineTo(p.x + 8, p.bottom - 16);
+        ctx.lineTo(p.x + 20, p.bottom);
+        ctx.lineTo(p.x + 32, p.bottom - 14);
+        ctx.lineTo(p.x + 44, p.bottom);
+        ctx.lineTo(p.x + 56, p.bottom - 18);
+        ctx.lineTo(p.x + pipeWidth + 4, p.bottom);
+        ctx.closePath();
+        ctx.fill();
       }
     }
 
