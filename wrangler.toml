@@ -1,4 +1,8 @@
 name = "flappy-penguin"
-workers_dev = "false"
-main = "src/index.js"
+main = "index.js"
 compatibility_date = "2026-11-14"
+workers_dev = false
+
+routes = [
+  { pattern = "flap.misantropic.net", custom_domain = true }
+]
