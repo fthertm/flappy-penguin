@@ -1,11 +1,17 @@
 export default {
   async fetch(request) {
+    const domain = "misantropic.net";
+    const icons = "https://" + domain + "/assets/icons/";
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flappy Penguin - misantropic</title>
+  <link rel="icon" type="image/svg+xml" href="${icons}favicon.svg">
+  <link rel="apple-touch-icon" href="${icons}apple-touch-icon.png">
+  <link rel="shortcut icon" href="${icons}favicon.ico">
+  <link rel="stylesheet" href="https://cloudflare.com">
   <style>
     :root {
       --bg: #2e3440;
@@ -38,13 +44,11 @@ export default {
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
-    header svg {
-      width: 34px;
-      height: 34px;
-      fill: var(--text);
-      flex-shrink: 0;
+    .brand i {
+      font-size: 30px;
+      color: var(--text);
     }
     header .sub { font-size: 11px; opacity: 0.9; line-height: 1.1; }
     header h1 { font-size: 19px; font-weight: 500; letter-spacing: -0.4px; line-height: 1.2; }
@@ -87,10 +91,7 @@ export default {
       width: auto;
       max-width: 100%;
     }
-    .hint {
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .hint { font-size: 12px; color: var(--muted); }
     footer {
       text-align: center;
       padding: 8px;
@@ -105,15 +106,13 @@ export default {
 <body>
   <header>
     <div class="brand">
-      <svg viewBox="0 0 576 512">
-        <path d="M288 32C155.1 32 45.7 133.4 33.2 263.1C32.4 271.4 39 278.4 47.4 278.4H162.8C176.2 223.3 226.2 182.4 288 182.4s111.8 40.9 125.2 96H528.6c8.4 0 15-7 14.2-15.3C530.3 133.4 420.9 32 288 32zM208 69.2V128h-64.4c19.1-25.2 41.1-45.3 64.4-58.8zM240 54.4c15.5-5.6 31.6-9.1 48-10.1V128H240V54.4zM320 44.3c16.4 1 32.5 4.5 48 10.1V128H320V44.3zm80 24.9c23.3 13.5 45.3 33.6 64.4 58.8H400V69.2zM86.2 160H176v55.4c-11.2 11.4-20.5 24.5-27.6 39H65.1C69.6 220.4 76.9 188.6 86.2 160zm313.8 0h89.8c9.3 28.6 16.6 60.4 21.1 94.4H427.6c-7.1-14.5-16.4-27.6-27.6-39V160zM32 310.4v41.6h128V320c0-3.2 .2-6.4 .5-9.6H32zm383.5 0c.3 3.2 .5 6.4 .5 9.6v32H544V310.4H415.5zM32 384v64c0 17.7 14.3 32 32 32h96V384H32zm384 0v96h96c17.7 0 32-14.3 32-32V384H416zM288 214.4c-53 0-96 43-96 96V480H384V310.4c0-53-43-96-96-96z"/>
-      </svg>
+      <i class="fas fa-igloo"></i>
       <div>
         <div class="sub">fewer letters, fewer people.</div>
         <h1>misantropic</h1>
       </div>
     </div>
-    <a class="back-btn" href="https://misantropic.net">← Dashboard</a>
+    <a class="back-btn" href="https://${domain}">← Dashboard</a>
   </header>
 
   <main>
@@ -128,7 +127,6 @@ export default {
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-
     const flakes = Array.from({ length: 34 }, () => ({
       x: Math.random() * 480,
       y: Math.random() * 440,
@@ -148,17 +146,14 @@ export default {
       else vel = jump;
     }
 
-    window.addEventListener('keydown', e => {
-      if (e.code === 'Space') { e.preventDefault(); flap(); }
-    });
+    window.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); flap(); } });
     canvas.addEventListener('mousedown', flap);
     canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); });
 
     function drawPenguin(x, y) {
       ctx.save();
       ctx.translate(x + 15, y + 14);
-      const angle = Math.max(-0.35, Math.min(0.45, vel * 0.055));
-      ctx.rotate(angle);
+      ctx.rotate(Math.max(-0.35, Math.min(0.45, vel * 0.055)));
 
       ctx.fillStyle = '#d08770';
       ctx.beginPath();
@@ -195,10 +190,8 @@ export default {
 
       ctx.fillStyle = '#3b4252';
       ctx.beginPath();
-      const wingAngle = vel < 0 ? -0.5 : 0.35;
-      ctx.ellipse(-3, 2, 7, 3.8, wingAngle, 0, Math.PI * 2);
+      ctx.ellipse(-3, 2, 7, 3.8, vel < 0 ? -0.5 : 0.35, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.restore();
     }
 
@@ -244,7 +237,6 @@ export default {
         vel += gravity;
         y += vel;
         frame++;
-
         if (frame % 95 === 0) {
           let gap = 126;
           let topH = Math.floor(Math.random() * (canvas.height - gap - 90)) + 45;
@@ -253,7 +245,6 @@ export default {
       }
 
       const pX = 95, pSize = 26;
-
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
         if (started && !gameOver) p.x -= 2.3;
@@ -261,22 +252,18 @@ export default {
         drawIceColumn(p.x, -4, 46, p.top + 4, true);
         drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
 
-        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 &&
-           (y + 2 < p.top + 8 || y + pSize - 2 > p.bottom - 8)) {
+        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 && (y + 2 < p.top + 8 || y + pSize - 2 > p.bottom - 8)) {
           gameOver = true;
         }
-
         if (!p.passed && p.x + 44 < pX) {
           score++;
           p.passed = true;
           if (score > best) best = score;
         }
-
         if (p.x + 46 < 0) pipes.splice(i, 1);
       }
 
       if (y + pSize > canvas.height || y < 0) gameOver = true;
-
       drawPenguin(pX, y);
 
       ctx.fillStyle = '#eceff4';
