@@ -17,77 +17,86 @@ export default {
       --ice: #88c0d0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
+    html, body {
+      height: 100dvh;
+      overflow: hidden;
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
       user-select: none;
     }
     header {
       background: var(--header);
-      padding: 18px 10%;
+      padding: 10px 8%;
       display: flex;
       align-items: center;
-      gap: 16px;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
     header svg {
-      width: 44px;
-      height: 44px;
+      width: 34px;
+      height: 34px;
       fill: var(--text);
       flex-shrink: 0;
     }
-    header .sub { font-size: 12px; opacity: 0.9; }
-    header h1 { font-size: 24px; font-weight: 500; letter-spacing: -0.5px; }
-    nav {
-      background: var(--subnav);
-      padding: 10px 10%;
-      font-size: 14px;
-      display: flex;
-      gap: 20px;
-    }
-    nav a {
+    header .sub { font-size: 11px; opacity: 0.9; line-height: 1.1; }
+    header h1 { font-size: 19px; font-weight: 500; letter-spacing: -0.4px; line-height: 1.2; }
+    .back-btn {
       color: var(--text);
       text-decoration: none;
-      opacity: 0.85;
+      font-size: 13px;
+      background: var(--subnav);
+      padding: 6px 12px;
+      border-radius: 6px;
+      opacity: 0.9;
       transition: opacity 0.15s;
     }
-    nav a:hover { opacity: 1; }
+    .back-btn:hover { opacity: 1; }
     main {
       flex: 1;
+      min-height: 0;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 12px;
     }
     .card {
       background: var(--surface);
-      padding: 16px;
+      padding: 12px;
       border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+      max-height: 100%;
     }
     canvas {
       background: #242933;
       border-radius: 6px;
       display: block;
       cursor: pointer;
+      max-height: calc(100dvh - 135px);
+      width: auto;
+      max-width: 100%;
     }
     .hint {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
     }
     footer {
       text-align: center;
-      padding: 16px;
-      font-size: 13px;
+      padding: 8px;
+      font-size: 12px;
       color: var(--muted);
+      flex-shrink: 0;
     }
     footer a { color: var(--ice); text-decoration: none; }
     footer a:hover { color: #ebcb8b; }
@@ -95,21 +104,21 @@ export default {
 </head>
 <body>
   <header>
-    <svg viewBox="0 0 576 512">
-      <path d="M288 32C156.9 32 48.2 128.4 33.7 256H162.8C176.2 200.9 226.2 160 288 160s111.8 40.9 125.2 96H542.3C527.8 128.4 419.1 32 288 32zM32 288v160c0 17.7 14.3 32 32 32h96V320c0-11 .9-21.7 2.8-32H32zm381.2 0c1.8 10.3 2.8 21 2.8 32v160h96c17.7 0 32-14.3 32-32V288H413.2zM288 192c-53 0-96 43-96 96v192h192V288c0-53-43-96-96-96z"/>
-    </svg>
-    <div>
-      <div class="sub">fewer letters, fewer people.</div>
-      <h1>misantropic</h1>
+    <div class="brand">
+      <svg viewBox="0 0 576 512">
+        <path d="M288 32C155.1 32 45.7 133.4 33.2 263.1C32.4 271.4 39 278.4 47.4 278.4H162.8C176.2 223.3 226.2 182.4 288 182.4s111.8 40.9 125.2 96H528.6c8.4 0 15-7 14.2-15.3C530.3 133.4 420.9 32 288 32zM208 69.2V128h-64.4c19.1-25.2 41.1-45.3 64.4-58.8zM240 54.4c15.5-5.6 31.6-9.1 48-10.1V128H240V54.4zM320 44.3c16.4 1 32.5 4.5 48 10.1V128H320V44.3zm80 24.9c23.3 13.5 45.3 33.6 64.4 58.8H400V69.2zM86.2 160H176v55.4c-11.2 11.4-20.5 24.5-27.6 39H65.1C69.6 220.4 76.9 188.6 86.2 160zm313.8 0h89.8c9.3 28.6 16.6 60.4 21.1 94.4H427.6c-7.1-14.5-16.4-27.6-27.6-39V160zM32 310.4v41.6h128V320c0-3.2 .2-6.4 .5-9.6H32zm383.5 0c.3 3.2 .5 6.4 .5 9.6v32H544V310.4H415.5zM32 384v64c0 17.7 14.3 32 32 32h96V384H32zm384 0v96h96c17.7 0 32-14.3 32-32V384H416zM288 214.4c-53 0-96 43-96 96V480H384V310.4c0-53-43-96-96-96z"/>
+      </svg>
+      <div>
+        <div class="sub">fewer letters, fewer people.</div>
+        <h1>misantropic</h1>
+      </div>
     </div>
+    <a class="back-btn" href="https://misantropic.net">← Dashboard</a>
   </header>
-  <nav>
-    <a href="https://misantropic.net">← Back to Dashboard</a>
-  </nav>
 
   <main>
     <div class="card">
-      <canvas id="game" width="340" height="460"></canvas>
+      <canvas id="game" width="480" height="440"></canvas>
       <div class="hint">Space / Click / Tap to flap</div>
     </div>
   </main>
@@ -120,18 +129,18 @@ export default {
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
-    const flakes = Array.from({ length: 28 }, () => ({
-      x: Math.random() * 340,
-      y: Math.random() * 460,
+    const flakes = Array.from({ length: 34 }, () => ({
+      x: Math.random() * 480,
+      y: Math.random() * 440,
       r: Math.random() * 2 + 1,
       s: Math.random() * 0.6 + 0.3
     }));
 
-    let y = 200, vel = 0, gravity = 0.36, jump = -6.5;
+    let y = 190, vel = 0, gravity = 0.36, jump = -6.5;
     let pipes = [], frame = 0, score = 0, best = 0, gameOver = false, started = false;
 
     function reset() {
-      y = 200; vel = 0; pipes = []; frame = 0; score = 0; gameOver = false; started = true;
+      y = 190; vel = 0; pipes = []; frame = 0; score = 0; gameOver = false; started = true;
     }
 
     function flap() {
@@ -237,22 +246,22 @@ export default {
         frame++;
 
         if (frame % 95 === 0) {
-          let gap = 128;
-          let topH = Math.floor(Math.random() * (canvas.height - gap - 100)) + 45;
+          let gap = 126;
+          let topH = Math.floor(Math.random() * (canvas.height - gap - 90)) + 45;
           pipes.push({ x: canvas.width, top: topH, bottom: topH + gap, passed: false });
         }
       }
 
-      const pX = 68, pSize = 26;
+      const pX = 95, pSize = 26;
 
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
-        if (started && !gameOver) p.x -= 2.2;
+        if (started && !gameOver) p.x -= 2.3;
 
-        drawIceColumn(p.x, -4, 44, p.top + 4, true);
-        drawIceColumn(p.x, p.bottom, 44, canvas.height - p.bottom + 4, false);
+        drawIceColumn(p.x, -4, 46, p.top + 4, true);
+        drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
 
-        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 44 &&
+        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 &&
            (y + 2 < p.top + 8 || y + pSize - 2 > p.bottom - 8)) {
           gameOver = true;
         }
@@ -263,7 +272,7 @@ export default {
           if (score > best) best = score;
         }
 
-        if (p.x + 44 < 0) pipes.splice(i, 1);
+        if (p.x + 46 < 0) pipes.splice(i, 1);
       }
 
       if (y + pSize > canvas.height || y < 0) gameOver = true;
@@ -283,10 +292,10 @@ export default {
         ctx.fillStyle = '#eceff4';
         ctx.font = '600 22px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(gameOver ? 'Frozen!' : 'Flappy Penguin', canvas.width / 2, 210);
+        ctx.fillText(gameOver ? 'Frozen!' : 'Flappy Penguin', canvas.width / 2, 200);
         ctx.fillStyle = '#88c0d0';
         ctx.font = '14px system-ui, sans-serif';
-        ctx.fillText('Click or press Space to fly', canvas.width / 2, 238);
+        ctx.fillText('Click or press Space to fly', canvas.width / 2, 228);
         ctx.textAlign = 'left';
       }
 
