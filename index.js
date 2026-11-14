@@ -15,13 +15,13 @@ export default {
   <link rel="icon" type="image/svg+xml" href="${iconSvg}">
   <style>
     :root {
-      --bg: #20242d;
-      --surface: #2b303c;
+      --bg: #21252b;
+      --surface: #282c34;
       --header-bg: #5e81ac;
       --accent: #88c0d0;
       --text: #eceff4;
-      --muted: #99a7be;
-      --border: #4c566a;
+      --muted: #abb2bf;
+      --border: #3e4452;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -38,12 +38,12 @@ export default {
     }
     header {
       background: var(--header-bg);
-      padding: 12px 5%;
+      padding: 10px 6%;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
       z-index: 10;
     }
     .brand {
@@ -52,77 +52,71 @@ export default {
       gap: 14px;
     }
     .brand img {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       object-fit: contain;
     }
-    .brand-text .sub {
+    .brand .sub {
       font-size: 11px;
       opacity: 0.9;
+      line-height: 1.1;
       text-transform: lowercase;
-      letter-spacing: 0.2px;
-      line-height: 1.2;
     }
-    .brand-text h1 {
-      font-size: 20px;
+    .brand h1 {
+      font-size: 19px;
       font-weight: 500;
       letter-spacing: -0.4px;
-      line-height: 1.1;
+      line-height: 1.2;
     }
     .back-btn {
       color: var(--text);
       text-decoration: none;
       font-size: 13px;
-      font-weight: 500;
-      background: rgba(0, 0, 0, 0.15);
-      padding: 7px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      transition: all 0.2s ease;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 6px 12px;
+      border-radius: 6px;
+      opacity: 0.9;
+      transition: opacity 0.15s;
     }
-    .back-btn:hover {
-      background: rgba(0, 0, 0, 0.28);
-    }
+    .back-btn:hover { opacity: 1; }
     main {
       flex: 1;
       min-height: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 12px;
     }
     .game-wrapper {
       background: var(--surface);
-      padding: 16px;
-      border-radius: 16px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
       border: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       max-width: 100%;
       max-height: 100%;
     }
     canvas {
       background: #181c24;
-      border-radius: 10px;
+      border-radius: 8px;
       display: block;
       cursor: pointer;
-      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-      max-height: calc(100dvh - 160px);
+      max-height: calc(100dvh - 150px);
       width: auto;
       max-width: 100%;
-      aspect-ratio: 400 / 580;
+      aspect-ratio: 400 / 520;
     }
     .game-footer {
       display: flex;
       width: 100%;
       justify-content: space-between;
       padding: 0 4px;
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
-      font-weight: 500;
     }
     .game-footer span {
       display: flex;
@@ -140,20 +134,20 @@ export default {
     }
     footer {
       text-align: center;
-      padding: 10px;
+      padding: 8px;
       font-size: 12px;
       color: var(--muted);
       flex-shrink: 0;
     }
-    footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
-    footer a:hover { color: #ebcb8b; text-decoration: underline; }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { color: #ebcb8b; }
   </style>
 </head>
 <body>
   <header>
     <div class="brand">
       <img src="${iconSvg}" alt="misantropic">
-      <div class="brand-text">
+      <div>
         <div class="sub">fewer letters, fewer people.</div>
         <h1>misantropic</h1>
       </div>
@@ -163,7 +157,7 @@ export default {
 
   <main>
     <div class="game-wrapper">
-      <canvas id="game" width="400" height="580"></canvas>
+      <canvas id="game" width="400" height="520"></canvas>
       <div class="game-footer">
         <span><kbd class="key">Space</kbd> / Tap to flap</span>
         <span>Flappy Penguin</span>
@@ -178,17 +172,17 @@ export default {
     const ctx = canvas.getContext('2d');
     const W = canvas.width;
     const H = canvas.height;
-    const flakes = Array.from({ length: 40 }, () => ({
+    const flakes = Array.from({ length: 35 }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
-      r: Math.random() * 2.2 + 0.8,
-      s: Math.random() * 0.7 + 0.3,
-      drift: Math.random() * 0.5 - 0.25
+      r: Math.random() * 2 + 0.8,
+      s: Math.random() * 0.6 + 0.3,
+      drift: Math.random() * 0.4 - 0.2
     }));
-    let bird = { x: 90, y: H / 2 - 20, w: 32, h: 24, vel: 0, gravity: 0.38, jump: -6.8, rotation: 0 };
+    let bird = { x: 80, y: H / 2 - 20, w: 32, h: 24, vel: 0, gravity: 0.38, jump: -6.8, rotation: 0 };
     let pipes = [];
     let pipeWidth = 46;
-    let pipeGap = 150;
+    let pipeGap = 145;
     let pipeSpeed = 2.4;
     let spawnTimer = 0;
     let spawnInterval = 95;
@@ -324,51 +318,51 @@ export default {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.font = '700 36px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(score, W / 2 + 2, 62);
+        ctx.fillText(score, W / 2 + 2, 52);
         ctx.fillStyle = '#eceff4';
-        ctx.fillText(score, W / 2, 60);
+        ctx.fillText(score, W / 2, 50);
       }
     }
     function drawStartScreen() {
       ctx.fillStyle = 'rgba(24, 28, 36, 0.65)';
       ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = '#eceff4';
-      ctx.font = '700 32px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = '700 30px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Flappy Penguin', W / 2, H / 2 - 60);
+      ctx.fillText('Flappy Penguin', W / 2, H / 2 - 50);
       ctx.fillStyle = '#88c0d0';
-      ctx.font = '600 15px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = '600 14px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.fillText('Tap or Press Space to Start', W / 2, H / 2 - 15);
     }
     function drawGameOverScreen() {
       ctx.fillStyle = 'rgba(24, 28, 36, 0.75)';
       ctx.fillRect(0, 0, W, H);
-      let cardW = 260;
-      let cardH = 180;
+      let cardW = 250;
+      let cardH = 170;
       let cardX = (W - cardW) / 2;
-      let cardY = (H - cardH) / 2 - 20;
-      ctx.fillStyle = '#2b303c';
-      ctx.strokeStyle = '#4c566a';
+      let cardY = (H - cardH) / 2 - 15;
+      ctx.fillStyle = '#282c34';
+      ctx.strokeStyle = '#3e4452';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(cardX, cardY, cardW, cardH, 14);
+      ctx.roundRect(cardX, cardY, cardW, cardH, 12);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = '#bf616a';
-      ctx.font = '700 24px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = '700 22px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Game Over', W / 2, cardY + 36);
-      ctx.fillStyle = '#99a7be';
-      ctx.font = '500 13px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText('SCORE', cardX + 70, cardY + 74);
-      ctx.fillText('BEST', cardX + 190, cardY + 74);
+      ctx.fillText('Game Over', W / 2, cardY + 34);
+      ctx.fillStyle = '#abb2bf';
+      ctx.font = '500 12px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('SCORE', cardX + 65, cardY + 70);
+      ctx.fillText('BEST', cardX + 185, cardY + 70);
       ctx.fillStyle = '#eceff4';
-      ctx.font = '700 28px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText(score, cardX + 70, cardY + 110);
-      ctx.fillText(best, cardX + 190, cardY + 110);
+      ctx.font = '700 26px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText(score, cardX + 65, cardY + 104);
+      ctx.fillText(best, cardX + 185, cardY + 104);
       ctx.fillStyle = '#88c0d0';
-      ctx.font = '600 14px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText('Tap or Space to Retry', W / 2, cardY + 152);
+      ctx.font = '600 13px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('Tap or Space to Retry', W / 2, cardY + 144);
     }
     function update() {
       if (flashTimer > 0) flashTimer--;
@@ -378,8 +372,8 @@ export default {
         spawnTimer++;
         if (spawnTimer >= spawnInterval) {
           spawnTimer = 0;
-          let minTop = 60;
-          let maxTop = H - pipeGap - 120;
+          let minTop = 50;
+          let maxTop = H - pipeGap - 100;
           let topH = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
           pipes.push({ x: W, top: topH, bottom: topH + pipeGap, passed: false });
         }
