@@ -128,8 +128,8 @@ export default {
 <body>
   <header>
     <a class="brand" href="https://${domain}">
-      <img src="${icons}favicon.svg" alt="misantropic">
-      <h1>misantropic</h1>
+      <img src="${icons}favicon.svg" alt="Flappy Penguin">
+      <h1>Flappy Penguin</h1>
     </a>
     <a class="back-btn" href="https://${domain}">← Dashboard</a>
   </header>
@@ -217,37 +217,43 @@ export default {
     function drawIceColumn(x, y, w, h, isTop) {
       ctx.save();
       ctx.beginPath();
+
       if (isTop) {
-        let base = y + h;
+        const endY = y + h;
+        const neckY = Math.max(y, endY - 36);
         ctx.moveTo(x, y);
         ctx.lineTo(x + w, y);
-        ctx.lineTo(x + w, base);
-        ctx.lineTo(x + w * 0.72, base + 11);
-        ctx.lineTo(x + w * 0.56, base + 3);
-        ctx.lineTo(x + w * 0.32, base + 17);
-        ctx.lineTo(x, base);
+        ctx.lineTo(x + w, neckY);
+        ctx.lineTo(x + w * 0.78, endY + 12);
+        ctx.lineTo(x + w * 0.64, endY + 2);
+        ctx.lineTo(x + w * 0.42, endY + 24);
+        ctx.lineTo(x + w * 0.22, neckY + 8);
+        ctx.lineTo(x, neckY);
       } else {
-        let base = y;
+        const neckY = Math.min(y + h, y + 36);
         ctx.moveTo(x, y + h);
+        ctx.lineTo(x, neckY);
+        ctx.lineTo(x + w * 0.22, y - 6);
+        ctx.lineTo(x + w * 0.46, y - 22);
+        ctx.lineTo(x + w * 0.70, y - 8);
+        ctx.lineTo(x + w, neckY);
         ctx.lineTo(x + w, y + h);
-        ctx.lineTo(x + w, base);
-        ctx.lineTo(x + w * 0.72, base - 11);
-        ctx.lineTo(x + w * 0.56, base - 3);
-        ctx.lineTo(x + w * 0.32, base - 17);
-        ctx.lineTo(x, base);
       }
+
       ctx.closePath();
-
-      ctx.fillStyle = '#5e81ac';
-      ctx.fill();
-
       ctx.clip();
 
-      ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(x + 4, y - 20, 5, h + 40);
+      ctx.fillStyle = '#5e81ac';
+      ctx.fillRect(x - 2, y - 26, w + 4, h + 52);
 
       ctx.fillStyle = '#4c6a8f';
-      ctx.fillRect(x + w - 7, y - 20, 7, h + 40);
+      ctx.fillRect(x + w * 0.55, y - 26, w * 0.45 + 2, h + 52);
+
+      ctx.fillStyle = '#88c0d0';
+      ctx.fillRect(x + 4, y - 26, 7, h + 52);
+
+      ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
+      ctx.fillRect(x + w * 0.38, y - 26, 3, h + 52);
 
       ctx.restore();
     }
@@ -271,7 +277,7 @@ export default {
         y += vel;
         frame++;
         if (frame % 95 === 0) {
-          let gap = 142;
+          let gap = 152;
           let topH = Math.floor(Math.random() * (canvas.height - gap - 90)) + 45;
           pipes.push({ x: canvas.width, top: topH, bottom: topH + gap, passed: false });
         }
@@ -285,7 +291,7 @@ export default {
         drawIceColumn(p.x, -4, 46, p.top + 4, true);
         drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
 
-        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 && (y + 2 < p.top + 11 || y + pSize - 2 > p.bottom - 11)) {
+        if (pX + pSize - 4 > p.x + 4 && pX + 4 < p.x + 42 && (y + 3 < p.top + 14 || y + pSize - 3 > p.bottom - 14)) {
           gameOver = true;
         }
         if (!p.passed && p.x + 44 < pX) {
