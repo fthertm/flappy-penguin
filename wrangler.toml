@@ -1,0 +1,4 @@
+name = "flappy-penguin"
+workers_dev = "false"
+main = "src/index.js"
+compatibility_date = "2026-11-14"
