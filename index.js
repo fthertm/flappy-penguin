@@ -220,40 +220,81 @@ export default {
 
       if (isTop) {
         const endY = y + h;
-        const neckY = Math.max(y, endY - 36);
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + w, y);
-        ctx.lineTo(x + w, neckY);
-        ctx.lineTo(x + w * 0.78, endY + 12);
-        ctx.lineTo(x + w * 0.64, endY + 2);
-        ctx.lineTo(x + w * 0.42, endY + 24);
-        ctx.lineTo(x + w * 0.22, neckY + 8);
-        ctx.lineTo(x, neckY);
+        const neckY = Math.max(y, endY - 32);
+        const topExpand = 12;
+        ctx.moveTo(x - topExpand, y);
+        ctx.lineTo(x + w + topExpand, y);
+        ctx.lineTo(x + w * 0.86, neckY);
+        ctx.lineTo(x + w * 0.72, endY + 12);
+        ctx.lineTo(x + w * 0.60, endY + 2);
+        ctx.lineTo(x + w * 0.44, endY + 24);
+        ctx.lineTo(x + w * 0.26, neckY + 6);
+        ctx.lineTo(x + w * 0.14, neckY);
       } else {
-        const neckY = Math.min(y + h, y + 36);
-        ctx.moveTo(x, y + h);
-        ctx.lineTo(x, neckY);
-        ctx.lineTo(x + w * 0.22, y - 6);
-        ctx.lineTo(x + w * 0.46, y - 22);
+        const neckY = Math.min(y + h, y + 32);
+        const baseExpand = 14;
+        ctx.moveTo(x - baseExpand, y + h);
+        ctx.lineTo(x + w * 0.14, neckY);
+        ctx.lineTo(x + w * 0.26, y - 6);
+        ctx.lineTo(x + w * 0.48, y - 22);
         ctx.lineTo(x + w * 0.70, y - 8);
-        ctx.lineTo(x + w, neckY);
-        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x + w * 0.86, neckY);
+        ctx.lineTo(x + w + baseExpand, y + h);
       }
 
       ctx.closePath();
       ctx.clip();
 
       ctx.fillStyle = '#5e81ac';
-      ctx.fillRect(x - 2, y - 26, w + 4, h + 52);
+      ctx.fillRect(x - 18, y - 26, w + 36, h + 52);
 
       ctx.fillStyle = '#4c6a8f';
-      ctx.fillRect(x + w * 0.55, y - 26, w * 0.45 + 2, h + 52);
+      ctx.beginPath();
+      if (isTop) {
+        ctx.moveTo(x + w * 0.52, y);
+        ctx.lineTo(x + w + 16, y);
+        ctx.lineTo(x + w * 0.85, y + h + 26);
+        ctx.lineTo(x + w * 0.44, y + h + 26);
+      } else {
+        ctx.moveTo(x + w * 0.48, y - 26);
+        ctx.lineTo(x + w * 0.85, y - 26);
+        ctx.lineTo(x + w + 18, y + h);
+        ctx.lineTo(x + w * 0.52, y + h);
+      }
+      ctx.closePath();
+      ctx.fill();
 
       ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(x + 4, y - 26, 7, h + 52);
+      ctx.beginPath();
+      if (isTop) {
+        ctx.moveTo(x - 6, y);
+        ctx.lineTo(x + 4, y);
+        ctx.lineTo(x + w * 0.34, y + h + 26);
+        ctx.lineTo(x + w * 0.22, y + h + 26);
+      } else {
+        ctx.moveTo(x + w * 0.24, y - 26);
+        ctx.lineTo(x + w * 0.36, y - 26);
+        ctx.lineTo(x + 4, y + h);
+        ctx.lineTo(x - 8, y + h);
+      }
+      ctx.closePath();
+      ctx.fill();
 
-      ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
-      ctx.fillRect(x + w * 0.38, y - 26, 3, h + 52);
+      ctx.fillStyle = 'rgba(236, 239, 244, 0.3)';
+      ctx.beginPath();
+      if (isTop) {
+        ctx.moveTo(x + w * 0.28, y);
+        ctx.lineTo(x + w * 0.34, y);
+        ctx.lineTo(x + w * 0.46, y + h + 26);
+        ctx.lineTo(x + w * 0.42, y + h + 26);
+      } else {
+        ctx.moveTo(x + w * 0.44, y - 26);
+        ctx.lineTo(x + w * 0.48, y - 26);
+        ctx.lineTo(x + w * 0.34, y + h);
+        ctx.lineTo(x + w * 0.28, y + h);
+      }
+      ctx.closePath();
+      ctx.fill();
 
       ctx.restore();
     }
@@ -291,7 +332,7 @@ export default {
         drawIceColumn(p.x, -4, 46, p.top + 4, true);
         drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
 
-        if (pX + pSize - 4 > p.x + 4 && pX + 4 < p.x + 42 && (y + 3 < p.top + 14 || y + pSize - 3 > p.bottom - 14)) {
+        if (pX + pSize - 4 > p.x + 6 && pX + 4 < p.x + 40 && (y + 3 < p.top + 14 || y + pSize - 3 > p.bottom - 14)) {
           gameOver = true;
         }
         if (!p.passed && p.x + 44 < pX) {
@@ -302,7 +343,7 @@ export default {
             localStorage.setItem('flappy_penguin_best', best);
           }
         }
-        if (p.x + 46 < 0) pipes.splice(i, 1);
+        if (p.x + 64 < 0) pipes.splice(i, 1);
       }
 
       if (y + pSize > canvas.height || y < 0) {
@@ -314,12 +355,16 @@ export default {
       }
       drawPenguin(pX, y);
 
+      ctx.save();
+      ctx.shadowColor = 'rgba(20, 24, 30, 0.85)';
+      ctx.shadowBlur = 4;
       ctx.fillStyle = '#eceff4';
       ctx.font = '600 22px system-ui, sans-serif';
       ctx.fillText(score, 18, 36);
-      ctx.fillStyle = '#aeb8c4';
-      ctx.font = '13px system-ui, sans-serif';
+      ctx.fillStyle = '#d8dee9';
+      ctx.font = '500 13px system-ui, sans-serif';
       ctx.fillText('Best: ' + best, 18, 56);
+      ctx.restore();
 
       if (!started || gameOver) {
         ctx.fillStyle = 'rgba(36, 41, 51, 0.85)';
