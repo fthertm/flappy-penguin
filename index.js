@@ -216,25 +216,57 @@ export default {
 
     function drawIceColumn(x, y, w, h, isTop) {
       ctx.fillStyle = '#5e81ac';
+      ctx.fillRect(x, y, w, h);
+
+      ctx.fillStyle = '#4c6a8f';
+      ctx.fillRect(x + w - 8, y, 8, h);
+
+      ctx.fillStyle = '#88c0d0';
+      ctx.fillRect(x + 4, y, 5, h);
+
+      ctx.fillStyle = '#5e81ac';
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 4);
+      if (isTop) {
+        let base = y + h - 2;
+        ctx.moveTo(x, base);
+        ctx.lineTo(x + w * 0.22, base + 14);
+        ctx.lineTo(x + w * 0.42, base + 4);
+        ctx.lineTo(x + w * 0.62, base + 20);
+        ctx.lineTo(x + w * 0.80, base + 5);
+        ctx.lineTo(x + w * 0.92, base + 12);
+        ctx.lineTo(x + w, base);
+      } else {
+        let base = y + 2;
+        ctx.moveTo(x, base);
+        ctx.lineTo(x + w * 0.22, base - 14);
+        ctx.lineTo(x + w * 0.42, base - 4);
+        ctx.lineTo(x + w * 0.62, base - 20);
+        ctx.lineTo(x + w * 0.80, base - 5);
+        ctx.lineTo(x + w * 0.92, base - 12);
+        ctx.lineTo(x + w, base);
+      }
+      ctx.closePath();
       ctx.fill();
 
       ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(x + 4, y, 6, h);
-
-      ctx.fillStyle = '#81a1c1';
       ctx.beginPath();
       if (isTop) {
-        ctx.moveTo(x, y + h);
-        ctx.lineTo(x + w / 2, y + h + 14);
-        ctx.lineTo(x + w, y + h);
+        let base = y + h - 2;
+        ctx.moveTo(x + 4, base);
+        ctx.lineTo(x + w * 0.22, base + 14);
+        ctx.lineTo(x + 11, base);
+        ctx.moveTo(x + w * 0.54, base);
+        ctx.lineTo(x + w * 0.62, base + 20);
+        ctx.lineTo(x + w * 0.65, base);
       } else {
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + w / 2, y - 14);
-        ctx.lineTo(x + w, y);
+        let base = y + 2;
+        ctx.moveTo(x + 4, base);
+        ctx.lineTo(x + w * 0.22, base - 14);
+        ctx.lineTo(x + 11, base);
+        ctx.moveTo(x + w * 0.54, base);
+        ctx.lineTo(x + w * 0.62, base - 20);
+        ctx.lineTo(x + w * 0.65, base);
       }
-      ctx.closePath();
       ctx.fill();
     }
 
@@ -257,7 +289,7 @@ export default {
         y += vel;
         frame++;
         if (frame % 95 === 0) {
-          let gap = 126;
+          let gap = 145;
           let topH = Math.floor(Math.random() * (canvas.height - gap - 90)) + 45;
           pipes.push({ x: canvas.width, top: topH, bottom: topH + gap, passed: false });
         }
@@ -271,7 +303,7 @@ export default {
         drawIceColumn(p.x, -4, 46, p.top + 4, true);
         drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
 
-        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 && (y + 2 < p.top || y + pSize - 2 > p.bottom)) {
+        if (pX + pSize - 2 > p.x && pX + 2 < p.x + 46 && (y + 2 < p.top + 12 || y + pSize - 2 > p.bottom - 12)) {
           gameOver = true;
         }
         if (!p.passed && p.x + 44 < pX) {
