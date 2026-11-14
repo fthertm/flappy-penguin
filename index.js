@@ -11,7 +11,7 @@ export default {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Flappy Penguin - misantropic</title>
+  <title>Flappy Penguin</title>
   <link rel="icon" type="image/svg+xml" href="${icons}favicon.svg">
   <link rel="apple-touch-icon" href="${icons}apple-touch-icon.png">
   <link rel="shortcut icon" href="${icons}favicon.ico">
