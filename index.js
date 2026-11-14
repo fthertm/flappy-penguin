@@ -127,10 +127,10 @@ export default {
 </head>
 <body>
   <header>
-    <div class="brand">
+    <a class="brand" href="https://${domain}">
       <img src="${icons}favicon.svg" alt="misantropic">
       <h1>misantropic</h1>
-    </div>
+    </a>
     <a class="back-btn" href="https://${domain}">← Dashboard</a>
   </header>
 
