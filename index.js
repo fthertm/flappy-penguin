@@ -105,14 +105,26 @@ export default {
       color: var(--muted);
       flex-shrink: 0;
     }
-    footer a { color: var(--ice); text-decoration: none; }
+    footer a {
+      color: var(--ice);
+      text-decoration: none;
+      font-weight: 600;
+    }
     footer a:hover { color: #ebcb8b; }
     .nord-heart {
       color: #88c0d0 !important;
       margin: 0 3px;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
       transition: color 0.25s ease;
       cursor: pointer;
+    }
+    .nord-heart svg {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
+      display: block;
     }
     .nord-heart:hover {
       color: #bf616a !important;
@@ -122,6 +134,9 @@ export default {
       0%, 28%, 70%, 100% { transform: scale(1); }
       14% { transform: scale(1.28); }
       42% { transform: scale(1.18); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nord-heart:hover { animation: none; }
     }
   </style>
 </head>
@@ -141,7 +156,7 @@ export default {
     </div>
   </main>
 
-  <footer>Created with <span class="nord-heart">🤍</span> by <a href="https://fatihertem.com" target="_blank" rel="noopener">fatih</a></footer>
+  <footer>Created with <span class="nord-heart" aria-label="love"><svg viewBox="0 0 512 512"><path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z"/></svg></span> by <a href="https://fatihertem.com" target="_blank" rel="noopener">fatih</a></footer>
 
   <script>
     const canvas = document.getElementById('game');
@@ -152,6 +167,17 @@ export default {
       r: Math.random() * 2 + 1,
       s: Math.random() * 0.6 + 0.3
     }));
+
+    const bgRidges = [
+      { x: 30, w: 90, h: 110, top: true },
+      { x: 180, w: 120, h: 150, top: true },
+      { x: 360, w: 100, h: 120, top: true },
+      { x: 500, w: 110, h: 135, top: true },
+      { x: 10, w: 110, h: 125, top: false },
+      { x: 160, w: 130, h: 155, top: false },
+      { x: 330, w: 95, h: 115, top: false },
+      { x: 480, w: 120, h: 140, top: false }
+    ];
 
     let y = 190, vel = 0, gravity = 0.36, jump = -6.5;
     let pipes = [], frame = 0, score = 0, best = parseInt(localStorage.getItem('flappy_penguin_best') || '0', 10), gameOver = false, started = false;
@@ -214,52 +240,79 @@ export default {
       ctx.restore();
     }
 
+    function drawBackgroundIce() {
+      ctx.fillStyle = 'rgba(76, 106, 143, 0.14)';
+      for (const r of bgRidges) {
+        if (started && !gameOver) {
+          r.x -= 0.45;
+          if (r.x + r.w < 0) r.x = canvas.width + 20;
+        }
+        ctx.beginPath();
+        if (r.top) {
+          ctx.moveTo(r.x, 0);
+          ctx.lineTo(r.x + r.w, 0);
+          ctx.lineTo(r.x + r.w * 0.72, r.h * 0.65);
+          ctx.lineTo(r.x + r.w * 0.48, r.h);
+          ctx.lineTo(r.x + r.w * 0.25, r.h * 0.55);
+        } else {
+          ctx.moveTo(r.x, canvas.height);
+          ctx.lineTo(r.x + r.w * 0.22, canvas.height - r.h * 0.6);
+          ctx.lineTo(r.x + r.w * 0.52, canvas.height - r.h);
+          ctx.lineTo(r.x + r.w * 0.78, canvas.height - r.h * 0.55);
+          ctx.lineTo(r.x + r.w, canvas.height);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
     function drawIceColumn(x, y, w, h, isTop) {
       ctx.save();
       ctx.beginPath();
 
       if (isTop) {
-        const endY = y + h;
-        const neckY = Math.max(y, endY - 32);
-        const topExpand = 12;
-        ctx.moveTo(x - topExpand, y);
-        ctx.lineTo(x + w + topExpand, y);
-        ctx.lineTo(x + w * 0.86, neckY);
-        ctx.lineTo(x + w * 0.72, endY + 12);
-        ctx.lineTo(x + w * 0.60, endY + 2);
-        ctx.lineTo(x + w * 0.44, endY + 24);
-        ctx.lineTo(x + w * 0.26, neckY + 6);
-        ctx.lineTo(x + w * 0.14, neckY);
+        const tipY = y + h + 16;
+        ctx.moveTo(x - 5, y);
+        ctx.lineTo(x + w + 5, y);
+        ctx.lineTo(x + w * 0.84, y + h * 0.48);
+        ctx.lineTo(x + w * 0.76, y + h * 0.72);
+        ctx.lineTo(x + w * 0.66, y + h * 0.58);
+        ctx.lineTo(x + w * 0.48, tipY);
+        ctx.lineTo(x + w * 0.28, y + h * 0.62);
+        ctx.lineTo(x + w * 0.16, y + h * 0.76);
+        ctx.lineTo(x + w * 0.10, y + h * 0.45);
       } else {
-        const neckY = Math.min(y + h, y + 32);
-        const baseExpand = 14;
-        ctx.moveTo(x - baseExpand, y + h);
-        ctx.lineTo(x + w * 0.14, neckY);
-        ctx.lineTo(x + w * 0.26, y - 6);
-        ctx.lineTo(x + w * 0.48, y - 22);
-        ctx.lineTo(x + w * 0.70, y - 8);
-        ctx.lineTo(x + w * 0.86, neckY);
-        ctx.lineTo(x + w + baseExpand, y + h);
+        const base = y + h;
+        const tipY = y - 16;
+        ctx.moveTo(x - 7, base);
+        ctx.lineTo(x + w * 0.08, y + h * 0.52);
+        ctx.lineTo(x + w * 0.20, y + h * 0.28);
+        ctx.lineTo(x + w * 0.30, y + h * 0.38);
+        ctx.lineTo(x + w * 0.48, tipY);
+        ctx.lineTo(x + w * 0.68, y + h * 0.32);
+        ctx.lineTo(x + w * 0.78, y + h * 0.22);
+        ctx.lineTo(x + w * 0.90, y + h * 0.55);
+        ctx.lineTo(x + w + 7, base);
       }
 
       ctx.closePath();
       ctx.clip();
 
       ctx.fillStyle = '#5e81ac';
-      ctx.fillRect(x - 18, y - 26, w + 36, h + 52);
+      ctx.fillRect(x - 10, y - 24, w + 20, h + 48);
 
       ctx.fillStyle = '#4c6a8f';
       ctx.beginPath();
       if (isTop) {
-        ctx.moveTo(x + w * 0.52, y);
-        ctx.lineTo(x + w + 16, y);
-        ctx.lineTo(x + w * 0.85, y + h + 26);
-        ctx.lineTo(x + w * 0.44, y + h + 26);
+        ctx.moveTo(x + w * 0.48, y);
+        ctx.lineTo(x + w + 8, y);
+        ctx.lineTo(x + w + 8, y + h + 24);
+        ctx.lineTo(x + w * 0.48, y + h + 24);
       } else {
-        ctx.moveTo(x + w * 0.48, y - 26);
-        ctx.lineTo(x + w * 0.85, y - 26);
-        ctx.lineTo(x + w + 18, y + h);
-        ctx.lineTo(x + w * 0.52, y + h);
+        ctx.moveTo(x + w * 0.48, y - 24);
+        ctx.lineTo(x + w + 10, y - 24);
+        ctx.lineTo(x + w + 10, y + h + 8);
+        ctx.lineTo(x + w * 0.48, y + h + 8);
       }
       ctx.closePath();
       ctx.fill();
@@ -267,31 +320,31 @@ export default {
       ctx.fillStyle = '#88c0d0';
       ctx.beginPath();
       if (isTop) {
-        ctx.moveTo(x - 6, y);
-        ctx.lineTo(x + 4, y);
-        ctx.lineTo(x + w * 0.34, y + h + 26);
-        ctx.lineTo(x + w * 0.22, y + h + 26);
+        ctx.moveTo(x + 2, y);
+        ctx.lineTo(x + 14, y);
+        ctx.lineTo(x + w * 0.46, y + h + 20);
+        ctx.lineTo(x + w * 0.36, y + h + 20);
       } else {
-        ctx.moveTo(x + w * 0.24, y - 26);
-        ctx.lineTo(x + w * 0.36, y - 26);
-        ctx.lineTo(x + 4, y + h);
-        ctx.lineTo(x - 8, y + h);
+        ctx.moveTo(x + w * 0.36, y - 20);
+        ctx.lineTo(x + w * 0.46, y - 20);
+        ctx.lineTo(x + 14, y + h);
+        ctx.lineTo(x + 1, y + h);
       }
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(236, 239, 244, 0.3)';
+      ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
       ctx.beginPath();
       if (isTop) {
-        ctx.moveTo(x + w * 0.28, y);
-        ctx.lineTo(x + w * 0.34, y);
-        ctx.lineTo(x + w * 0.46, y + h + 26);
-        ctx.lineTo(x + w * 0.42, y + h + 26);
+        ctx.moveTo(x + 17, y);
+        ctx.lineTo(x + 21, y);
+        ctx.lineTo(x + w * 0.48, y + h + 18);
+        ctx.lineTo(x + w * 0.45, y + h + 18);
       } else {
-        ctx.moveTo(x + w * 0.44, y - 26);
-        ctx.lineTo(x + w * 0.48, y - 26);
-        ctx.lineTo(x + w * 0.34, y + h);
-        ctx.lineTo(x + w * 0.28, y + h);
+        ctx.moveTo(x + w * 0.45, y - 18);
+        ctx.lineTo(x + w * 0.48, y - 18);
+        ctx.lineTo(x + 21, y + h);
+        ctx.lineTo(x + 17, y + h);
       }
       ctx.closePath();
       ctx.fill();
@@ -299,8 +352,40 @@ export default {
       ctx.restore();
     }
 
+    function checkConeCollision(pX, pY, pSize, pipe) {
+      const colW = 46;
+      const centerX = pipe.x + colW * 0.48;
+      const pLeft = pX + 3;
+      const pRight = pX + pSize - 3;
+      const pTop = pY + 3;
+      const pBottom = pY + pSize - 3;
+
+      const topTip = pipe.top + 14;
+      if (pTop < topTip) {
+        const ratio = Math.max(0, Math.min(1, pTop / Math.max(1, topTip)));
+        const halfWidth = (colW * 0.56) * (1 - ratio * 0.78);
+        if (pRight > centerX - halfWidth && pLeft < centerX + halfWidth) {
+          return true;
+        }
+      }
+
+      const bottomTip = pipe.bottom - 14;
+      if (pBottom > bottomTip) {
+        const totalH = Math.max(1, canvas.height - bottomTip);
+        const ratio = Math.max(0, Math.min(1, (canvas.height - pBottom) / totalH));
+        const halfWidth = (colW * 0.58) * (1 - ratio * 0.78);
+        if (pRight > centerX - halfWidth && pLeft < centerX + halfWidth) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
     function loop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawBackgroundIce();
 
       ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
       for (const f of flakes) {
@@ -332,7 +417,7 @@ export default {
         drawIceColumn(p.x, -4, 46, p.top + 4, true);
         drawIceColumn(p.x, p.bottom, 46, canvas.height - p.bottom + 4, false);
 
-        if (pX + pSize - 4 > p.x + 6 && pX + 4 < p.x + 40 && (y + 3 < p.top + 14 || y + pSize - 3 > p.bottom - 14)) {
+        if (checkConeCollision(pX, y, pSize, p)) {
           gameOver = true;
         }
         if (!p.passed && p.x + 44 < pX) {
@@ -343,7 +428,7 @@ export default {
             localStorage.setItem('flappy_penguin_best', best);
           }
         }
-        if (p.x + 64 < 0) pipes.splice(i, 1);
+        if (p.x + 56 < 0) pipes.splice(i, 1);
       }
 
       if (y + pSize > canvas.height || y < 0) {
@@ -356,13 +441,15 @@ export default {
       drawPenguin(pX, y);
 
       ctx.save();
-      ctx.shadowColor = 'rgba(20, 24, 30, 0.85)';
+      ctx.shadowColor = 'rgba(27, 31, 39, 0.85)';
       ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
       ctx.fillStyle = '#eceff4';
       ctx.font = '600 22px system-ui, sans-serif';
       ctx.fillText(score, 18, 36);
       ctx.fillStyle = '#d8dee9';
-      ctx.font = '500 13px system-ui, sans-serif';
+      ctx.font = '600 13px system-ui, sans-serif';
       ctx.fillText('Best: ' + best, 18, 56);
       ctx.restore();
 
