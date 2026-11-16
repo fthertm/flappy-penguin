@@ -19,7 +19,7 @@ export default {
     :root {
       --bg: #2e3440;
       --surface: #3b4252;
-      --header: #5e81ac;
+      --header: #526e96;
       --subnav: #4c6a8f;
       --text: #eceff4;
       --muted: #d8dee9;
@@ -57,7 +57,7 @@ export default {
       object-fit: contain;
       filter: brightness(0) invert(1);
     }
-    header h1 { font-size: 19px; font-weight: 500; letter-spacing: -0.4px; line-height: 1; }
+    header h1 { font-size: 28px; font-weight: 500; letter-spacing: -0.4px; line-height: 1; }
     .back-btn {
       color: var(--text);
       text-decoration: none;
@@ -81,7 +81,7 @@ export default {
       background: var(--surface);
       padding: 12px;
       border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(36, 41, 51, 0.55);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -93,9 +93,9 @@ export default {
       border-radius: 6px;
       display: block;
       cursor: pointer;
-      max-height: calc(100dvh - 145px);
-      width: auto;
-      max-width: 100%;
+      width: min(480px, calc(100vw - 48px), calc((100dvh - 145px) * 480 / 440));
+      height: auto;
+      aspect-ratio: 480 / 440;
     }
     .hint { font-size: 12px; color: var(--muted); }
     footer {
@@ -160,6 +160,15 @@ export default {
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+
+    // Mantıksal çözünürlük 480x440; çizim çözünürlüğü ekran DPI'sına göre (en fazla 2x)
+    const W = 480, H = 440;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const reduceMotion = false
 
     // Web Audio API (Saf, doğal ses sentezi)
     let audioCtx = null;
@@ -274,8 +283,10 @@ export default {
     ];
 
     let particles = [];
+    let flapT = 0, shakeT = 0, scorePop = 0, auroraT = 0;
+    const tipH = 30;
     const groundHeight = 28;
-    const playHeight = canvas.height - groundHeight;
+    const playHeight = H - groundHeight;
     let groundOffset = 0;
 
     let y = 185, vel = 0, gravity = 0.36, jump = -6.5;
@@ -284,7 +295,7 @@ export default {
     let isNewBest = false;
     let gameOver = false, started = false, crashed = false;
 
-    const muteBtn = { x: canvas.width - 42, y: 12, w: 30, h: 30 };
+    const muteBtn = { x: W - 42, y: 12, w: 30, h: 30 };
 
     function spawnSnowBurst(bx, by, count) {
       for (let i = 0; i < count; i++) {
@@ -303,7 +314,9 @@ export default {
       y = 185; vel = 0; pipes = []; particles = [];
       frame = 0; score = 0;
       gameOver = false; started = true; crashed = false; isNewBest = false;
+      scorePop = 0; shakeT = 0;
       vel = jump;
+      flapT = 1;
       playFlapSound();
       spawnSnowBurst(100, y + 18, 6);
     }
@@ -315,6 +328,7 @@ export default {
         reset();
       } else if (!crashed) {
         vel = jump;
+        flapT = 1;
         playFlapSound();
         spawnSnowBurst(100, y + 18, 5);
       }
@@ -323,6 +337,7 @@ export default {
     function triggerCrash() {
       if (!crashed) {
         crashed = true;
+        if (!reduceMotion) shakeT = 1;
         vel = -2.5;
         playCrashSound();
         spawnSnowBurst(110, y + 14, 14);
@@ -336,8 +351,8 @@ export default {
 
     function handlePointer(clientX, clientY) {
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const scaleX = W / rect.width;
+      const scaleY = H / rect.height;
       const cx = (clientX - rect.left) * scaleX;
       const cy = (clientY - rect.top) * scaleY;
 
@@ -367,6 +382,52 @@ export default {
         handlePointer(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: false });
+
+    // Aurora: bir kez ayrı bir canvas'a çizilir, her karede yalnızca kaydırılır
+    const aurora = (() => {
+      const AW = 480, AH = 190;
+      const c = document.createElement('canvas');
+      c.width = AW; c.height = AH;
+      const g = c.getContext('2d');
+      const green = [163, 190, 140], ice = [136, 192, 208], purple = [180, 142, 173];
+      const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+      for (let x = 0; x < AW; x++) {
+        const th = (x / AW) * Math.PI * 2;
+        const base = 78 + Math.sin(th * 2) * 16 + Math.sin(th * 3 + 1.3) * 9;
+        const len = 62 + Math.sin(th * 4 + 0.7) * 16 + Math.sin(th * 7) * 7;
+        const strength = 0.55 + 0.45 * Math.sin(th * 3 + 0.4);
+        let col = mix(green, ice, (Math.sin(th * 2 + 0.5) + 1) / 2);
+        col = mix(col, purple, Math.max(0, Math.sin(th * 3 - 0.8)) * 0.7);
+        const rgb = col.join(',');
+        const top = base - len;
+        const total = len * 1.35;
+        const grad = g.createLinearGradient(0, top, 0, top + total);
+        grad.addColorStop(0, 'rgba(' + rgb + ',0)');
+        grad.addColorStop(0.74, 'rgba(' + rgb + ',' + (0.5 * strength).toFixed(3) + ')');
+        grad.addColorStop(1, 'rgba(' + rgb + ',0)');
+        g.fillStyle = grad;
+        g.fillRect(x, top, 1, total);
+      }
+      return { c, AW };
+    })();
+
+    function drawAurora() {
+      const t = auroraT;
+      ctx.save();
+      ctx.globalAlpha = 0.85 + Math.sin(t * 0.013) * 0.15;
+      let ox = -((t * 0.10) % aurora.AW);
+      ctx.drawImage(aurora.c, ox, 0);
+      ctx.drawImage(aurora.c, ox + aurora.AW, 0);
+
+      // İkinci, ters yönlü ve ayna katman: yavaş dalgalanma hissi verir
+      ctx.globalAlpha = 0.45 + Math.sin(t * 0.021 + 1) * 0.25;
+      ctx.translate(W, 14);
+      ctx.scale(-1, 0.85);
+      ox = -((t * 0.06) % aurora.AW);
+      ctx.drawImage(aurora.c, ox, 0);
+      ctx.drawImage(aurora.c, ox + aurora.AW, 0);
+      ctx.restore();
+    }
 
     function drawSnowyMountain(m, baseY, bodyColor, shadeColor, snowColor, snowShade) {
       const peakX = m.x + m.w * 0.5;
@@ -424,7 +485,9 @@ export default {
       skyGrad.addColorStop(0, '#1e222a');
       skyGrad.addColorStop(1, '#292f3b');
       ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, canvas.width, playHeight);
+      ctx.fillRect(0, 0, W, playHeight);
+
+      drawAurora();
 
       // Uzak yıldızlar
       for (const s of stars) {
@@ -454,29 +517,51 @@ export default {
     }
 
     function drawGround() {
+      const gy = playHeight;
       ctx.fillStyle = '#3b4252';
-      ctx.fillRect(0, playHeight, canvas.width, groundHeight);
-
-      ctx.fillStyle = '#d8dee9';
-      ctx.fillRect(0, playHeight, canvas.width, 5);
-      ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(0, playHeight + 5, canvas.width, 3);
+      ctx.fillRect(0, gy, W, groundHeight);
 
       ctx.save();
       ctx.beginPath();
-      ctx.rect(0, playHeight + 8, canvas.width, groundHeight - 8);
+      ctx.rect(0, gy, W, groundHeight);
       ctx.clip();
-      ctx.fillStyle = '#2e3440';
-      const step = 20;
-      for (let gx = -step + (groundOffset % step); gx < canvas.width + step; gx += step) {
+
+      // Buz çatlağı çizgileri (zeminle birlikte kayar)
+      ctx.strokeStyle = 'rgba(136, 192, 208, 0.30)';
+      ctx.lineWidth = 1;
+      ctx.lineJoin = 'round';
+      const cs = 64;
+      const off = groundOffset % cs;
+      for (let gx = -cs + off; gx < W + cs; gx += cs) {
         ctx.beginPath();
-        ctx.moveTo(gx, playHeight + 8);
-        ctx.lineTo(gx + 10, playHeight + 8);
-        ctx.lineTo(gx + 2, canvas.height);
-        ctx.lineTo(gx - 8, canvas.height);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(gx + 6, gy + 11);
+        ctx.lineTo(gx + 15, gy + 16);
+        ctx.lineTo(gx + 11, gy + 20);
+        ctx.lineTo(gx + 22, gy + 26);
+        ctx.moveTo(gx + 15, gy + 16);
+        ctx.lineTo(gx + 27, gy + 15);
+        ctx.moveTo(gx + 44, gy + 12);
+        ctx.lineTo(gx + 49, gy + 19);
+        ctx.lineTo(gx + 46, gy + 24);
+        ctx.stroke();
       }
+
+      // Buz mavisi çizgi
+      ctx.fillStyle = '#88c0d0';
+      ctx.fillRect(0, gy + 8, W, 3);
+
+      // Karlı, dalgalı çıkıntılar
+      ctx.fillStyle = '#e5e9f0';
+      ctx.beginPath();
+      ctx.moveTo(0, gy + 9);
+      for (let x = 0; x <= W; x += 4) {
+        const ph = x - groundOffset;
+        ctx.lineTo(x, gy + 4.5 + Math.sin(ph * 0.07) * 2.2 + Math.sin(ph * 0.19) * 1);
+      }
+      ctx.lineTo(W, gy + 9);
+      ctx.closePath();
+      ctx.fill();
+
       ctx.restore();
     }
 
@@ -487,22 +572,45 @@ export default {
       if (!started) angle = Math.sin(frame * 0.08) * 0.08;
       ctx.rotate(angle);
 
+      // Ayaklar
       ctx.fillStyle = '#d08770';
       ctx.beginPath();
       ctx.ellipse(-5, 13, 5, 2.5, 0, 0, Math.PI * 2);
       ctx.ellipse(4, 13, 5, 2.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#1b1f27';
+      // Gövde: gökyüzünden ayrılması için daha açık ton + buz mavisi kenar ışığı
+      ctx.fillStyle = '#3d4a60';
       ctx.beginPath();
       ctx.ellipse(0, 0, 14, 13, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = 'rgba(136, 192, 208, 0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
 
+      // Göğüs
       ctx.fillStyle = '#eceff4';
       ctx.beginPath();
       ctx.ellipse(3, 2, 9, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // Kırmızı atkı ve hıza göre dalgalanan kuyruğu
+      ctx.strokeStyle = '#bf616a';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-11, -4);
+      ctx.quadraticCurveTo(0, 3, 12, 0);
+      ctx.stroke();
+      const wave = Math.sin(frame * 0.35) * 2.5 - Math.max(-4, Math.min(4, vel * 0.7));
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(-10, -3);
+      ctx.quadraticCurveTo(-15, -1 + wave * 0.4, -20, -4 + wave);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+
+      // Göz
       ctx.fillStyle = '#1b1f27';
       ctx.beginPath();
       ctx.arc(6, -4, 2.2, 0, Math.PI * 2);
@@ -512,6 +620,7 @@ export default {
       ctx.arc(6.7, -4.7, 0.8, 0, Math.PI * 2);
       ctx.fill();
 
+      // Gaga
       ctx.fillStyle = '#ebcb8b';
       ctx.beginPath();
       ctx.moveTo(12, -2);
@@ -520,58 +629,104 @@ export default {
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = '#3b4252';
-      let wingAngle = vel < 0 ? -0.5 : 0.35;
-      if (!started) wingAngle = Math.sin(frame * 0.14) * 0.35;
+      // Kanat: çırpınca yukarı savrulup geri döner
+      let wingAngle = 0.35, wingLift = 0;
+      if (!started) {
+        wingAngle = Math.sin(frame * 0.14) * 0.35;
+      } else if (flapT > 0) {
+        const k = Math.sin((1 - flapT) * Math.PI);
+        wingAngle = 0.35 - k * 1.3;
+        wingLift = k * 3;
+      }
+      ctx.fillStyle = '#272e3b';
       ctx.beginPath();
-      ctx.ellipse(-3, 2, 7, 3.8, wingAngle, 0, Math.PI * 2);
+      ctx.ellipse(-3, 2 - wingLift, 7, 3.8, wingAngle, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
     function drawIceBlockPipe(x, py, w, h, isTop) {
       if (h <= 0) return;
-      const capH = 18;
-      const capOverhang = 4;
+      const cx = x + w / 2;
 
-      ctx.fillStyle = '#5e81ac';
-      ctx.fillRect(x, py, w, h);
+      if (isTop) {
+        // Tavandan sarkan buz sütunu; son tipH px aşağı doğru sivrilir
+        const colH = Math.max(0, h - tipH);
+        const ts = py + colH;
+        const tip = py + h;
 
-      ctx.fillStyle = '#4c6a8f';
-      ctx.fillRect(x + w - 10, py, 10, h);
+        ctx.fillStyle = '#81a1c1';
+        ctx.fillRect(x, py, w, colH);
+        ctx.fillStyle = '#5e81ac';
+        ctx.fillRect(x + w - 10, py, 10, colH);
+        ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
+        ctx.fillRect(x + 5, py, 6, colH);
+        ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
+        ctx.fillRect(x + 14, py, 2, colH);
 
-      ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(x + 5, py, 6, h);
+        // Sivri uç: sol yüz açık, sağ yüz gölgeli
+        ctx.fillStyle = '#81a1c1';
+        ctx.beginPath();
+        ctx.moveTo(x, ts);
+        ctx.lineTo(x + w - 10, ts);
+        ctx.lineTo(cx, tip);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#5e81ac';
+        ctx.beginPath();
+        ctx.moveTo(x + w - 10, ts);
+        ctx.lineTo(x + w, ts);
+        ctx.lineTo(cx, tip);
+        ctx.closePath();
+        ctx.fill();
 
-      ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
-      ctx.fillRect(x + 14, py, 2, h);
+        ctx.strokeStyle = 'rgba(236, 239, 244, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 8, ts);
+        ctx.lineTo(cx - 2, tip - 8);
+        ctx.stroke();
+      } else {
+        // Yerden yükselen buz sütunu, üstü karla kaplı
+        ctx.fillStyle = '#81a1c1';
+        ctx.fillRect(x, py, w, h);
+        ctx.fillStyle = '#5e81ac';
+        ctx.fillRect(x + w - 10, py, 10, h);
+        ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
+        ctx.fillRect(x + 5, py, 6, h);
+        ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
+        ctx.fillRect(x + 14, py, 2, h);
 
-      const capX = x - capOverhang;
-      const capW = w + capOverhang * 2;
-      const capY = isTop ? (py + h - capH) : py;
-
-      ctx.fillStyle = '#688db8';
-      ctx.beginPath();
-      ctx.roundRect(capX, capY, capW, capH, 3);
-      ctx.fill();
-
-      ctx.fillStyle = '#4c6a8f';
-      ctx.fillRect(capX + capW - 11, capY + 1, 10, capH - 2);
-
-      ctx.fillStyle = '#8fbcbb';
-      ctx.fillRect(capX + 5, capY + 1, 7, capH - 2);
-
-      if (!isTop) {
+        // Kar başlığı
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
-        ctx.roundRect(capX, capY, capW, 6, [3, 3, 1, 1]);
+        ctx.roundRect(x - 3, py, w + 6, 11, [5, 5, 3, 3]);
         ctx.fill();
-      } else {
-        ctx.fillStyle = '#88c0d0';
         ctx.beginPath();
-        ctx.roundRect(capX, capY + capH - 4, capW, 4, [0, 0, 3, 3]);
+        ctx.arc(x + 9, py + 11, 3.5, 0, Math.PI * 2);
+        ctx.arc(cx + 5, py + 12, 4, 0, Math.PI * 2);
+        ctx.arc(x + w - 8, py + 11, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#d8dee9';
+        ctx.beginPath();
+        ctx.roundRect(x + w - 10, py + 1, 13, 10, [0, 5, 3, 0]);
         ctx.fill();
       }
+    }
+
+    // Üst engelde uç sivrildiği için çarpışma da aynı şekle uyar (haksız ölüm olmasın)
+    function hitsTopPipe(p, pX, py, pSize, pipeW) {
+      const bx0 = pX + 3, bx1 = pX + pSize - 3;
+      const ty = py + 3;
+      if (ty >= p.top) return false;
+      const cx = p.x + pipeW / 2;
+      const tipStart = p.top - tipH;
+      if (ty < tipStart) {
+        return bx1 > p.x - 2 && bx0 < p.x + pipeW + 2;
+      }
+      const f = (p.top - ty) / tipH;
+      const hw = (pipeW / 2) * f + 2;
+      return bx1 > cx - hw && bx0 < cx + hw;
     }
 
     function drawMuteButton() {
@@ -623,17 +778,17 @@ export default {
       ctx.textAlign = 'center';
 
       // Başlık
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowColor = 'rgba(36, 41, 51, 0.85)';
       ctx.shadowBlur = 8;
       ctx.fillStyle = '#eceff4';
       ctx.font = '700 28px system-ui, sans-serif';
-      ctx.fillText('Get Ready!', canvas.width / 2, 118);
+      ctx.fillText('Get Ready!', W / 2, 118);
 
       // Hafif yukarı-aşağı süzülen küçük yönlendirme kapsülü
       const bob = Math.sin(frame * 0.08) * 4;
       const boxW = 210;
       const boxH = 34;
-      const boxX = (canvas.width - boxW) / 2;
+      const boxX = (W - boxW) / 2;
       const boxY = 250 + bob;
 
       ctx.shadowBlur = 0;
@@ -647,7 +802,7 @@ export default {
 
       ctx.fillStyle = '#88c0d0';
       ctx.font = '600 13px system-ui, sans-serif';
-      ctx.fillText('Space / Click / Tap to Flap', canvas.width / 2, boxY + 21);
+      ctx.fillText('Space / Click / Tap to Flap', W / 2, boxY + 21);
 
       ctx.restore();
     }
@@ -656,15 +811,15 @@ export default {
       ctx.save();
       // Hafif karartma perdesi
       ctx.fillStyle = 'rgba(30, 34, 42, 0.52)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, W, H);
 
       const cardW = 250;
       const cardH = 186;
-      const cardX = (canvas.width - cardW) / 2;
+      const cardX = (W - cardW) / 2;
       const cardY = (playHeight - cardH) / 2;
 
       // Nord skor kartı
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowColor = 'rgba(36, 41, 51, 0.7)';
       ctx.shadowBlur = 16;
       ctx.fillStyle = '#3b4252';
       ctx.beginPath();
@@ -679,7 +834,7 @@ export default {
       ctx.textAlign = 'center';
       ctx.fillStyle = '#eceff4';
       ctx.font = '700 24px system-ui, sans-serif';
-      ctx.fillText('Game Over', canvas.width / 2, cardY + 38);
+      ctx.fillText('Game Over', W / 2, cardY + 38);
 
       // Skor kutusu
       const innerX = cardX + 20;
@@ -695,7 +850,7 @@ export default {
       // Sol sütun: Score
       ctx.fillStyle = '#aeb8c4';
       ctx.font = '600 11px system-ui, sans-serif';
-      ctx.fillText('SCORE', innerX + innerW * 0.27, innerY + 24);
+      ctx.fillText('score', innerX + innerW * 0.27, innerY + 24);
       ctx.fillStyle = '#eceff4';
       ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText(score, innerX + innerW * 0.27, innerY + 54);
@@ -703,14 +858,14 @@ export default {
       // Orta ayırıcı çizgi
       ctx.strokeStyle = 'rgba(216, 222, 233, 0.12)';
       ctx.beginPath();
-      ctx.moveTo(canvas.width / 2, innerY + 14);
-      ctx.lineTo(canvas.width / 2, innerY + innerH - 14);
+      ctx.moveTo(W / 2, innerY + 14);
+      ctx.lineTo(W / 2, innerY + innerH - 14);
       ctx.stroke();
 
       // Sağ sütun: Best
       ctx.fillStyle = '#aeb8c4';
       ctx.font = '600 11px system-ui, sans-serif';
-      ctx.fillText('BEST', innerX + innerW * 0.73, innerY + 24);
+      ctx.fillText('best', innerX + innerW * 0.73, innerY + 24);
       ctx.fillStyle = '#88c0d0';
       ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText(best, innerX + innerW * 0.73, innerY + 54);
@@ -722,14 +877,14 @@ export default {
         ctx.roundRect(innerX + innerW - 42, innerY - 8, 36, 16, 4);
         ctx.fill();
         ctx.fillStyle = '#eceff4';
-        ctx.font = '700 9px system-ui, sans-serif';
-        ctx.fillText('NEW', innerX + innerW - 24, innerY + 3);
+        ctx.font = '700 10px system-ui, sans-serif';
+        ctx.fillText('new', innerX + innerW - 24, innerY + 3);
       }
 
       // Tekrar oyna butonu
       const btnW = 146;
       const btnH = 32;
-      const btnX = (canvas.width - btnW) / 2;
+      const btnX = (W - btnW) / 2;
       const btnY = cardY + 140;
 
       ctx.fillStyle = '#5e81ac';
@@ -739,13 +894,22 @@ export default {
 
       ctx.fillStyle = '#eceff4';
       ctx.font = '600 13px system-ui, sans-serif';
-      ctx.fillText('Play Again', canvas.width / 2, btnY + 21);
+      ctx.fillText('Play Again', W / 2, btnY + 21);
 
       ctx.restore();
     }
 
     function loop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, W, H);
+
+      // Dünya katmanı (çarpmada kısa sarsıntı; reduced-motion'da kapalı)
+      ctx.save();
+      if (shakeT > 0) {
+        const m = shakeT * 5;
+        ctx.translate((Math.random() - 0.5) * 2 * m, (Math.random() - 0.5) * 2 * m);
+        shakeT = Math.max(0, shakeT - 0.07);
+      }
+      if (!reduceMotion) auroraT++;
 
       drawBackground();
 
@@ -754,8 +918,8 @@ export default {
       for (const f of flakes) {
         f.y += f.s;
         f.x -= 0.45;
-        if (f.y > playHeight) { f.y = 0; f.x = Math.random() * canvas.width; }
-        if (f.x < 0) f.x = canvas.width;
+        if (f.y > playHeight) { f.y = 0; f.x = Math.random() * W; }
+        if (f.x < 0) f.x = W;
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
         ctx.fill();
@@ -777,11 +941,12 @@ export default {
           let minTop = 48;
           let maxTop = playHeight - gap - 48;
           let topH = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
-          pipes.push({ x: canvas.width + 10, top: topH, bottom: topH + gap, passed: false });
+          pipes.push({ x: W + 10, top: topH, bottom: topH + gap, passed: false });
         }
       } else if (!gameOver) {
         vel += gravity * 1.15;
         y += vel;
+        frame++;
       }
 
       const pX = 95, pSize = 26, pipeW = 48;
@@ -793,12 +958,14 @@ export default {
         drawIceBlockPipe(p.x, p.bottom, pipeW, playHeight - p.bottom, false);
 
         if (!crashed) {
-          if (pX + pSize - 3 > p.x - 2 && pX + 3 < p.x + pipeW + 2 &&
-              (y + 3 < p.top || y + pSize - 3 > p.bottom)) {
+          const hitBottom = pX + pSize - 3 > p.x - 2 && pX + 3 < p.x + pipeW + 2 &&
+                            y + pSize - 3 > p.bottom;
+          if (hitBottom || hitsTopPipe(p, pX, y, pSize, pipeW)) {
             triggerCrash();
           }
           if (!p.passed && p.x + pipeW < pX) {
             score++;
+            scorePop = 1;
             p.passed = true;
             playScoreSound();
           }
@@ -834,19 +1001,31 @@ export default {
       }
 
       drawPenguin(pX, y);
+      ctx.restore();
 
-      // Oyun içi canlı skor (Game Over kartı açıkken gizlenir)
+      flapT = Math.max(0, flapT - 0.09);
+      scorePop = Math.max(0, scorePop - 0.07);
+
+      // Oyun içi canlı skor: merkezde, puan alınca kısa süre büyür
       if (started && !gameOver) {
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(30, 34, 42, 0.85)';
         ctx.shadowBlur = 6;
         ctx.shadowOffsetY = 1;
+        ctx.translate(W / 2, 52);
+        const sc = 1 + 0.3 * scorePop;
+        ctx.scale(sc, sc);
         ctx.fillStyle = '#eceff4';
-        ctx.font = '700 26px system-ui, sans-serif';
-        ctx.fillText(score, 18, 38);
+        ctx.font = '700 34px system-ui, sans-serif';
+        ctx.fillText(score, 0, 0);
+        ctx.restore();
+
+        ctx.save();
+        ctx.textAlign = 'center';
         ctx.fillStyle = '#d8dee9';
         ctx.font = '600 13px system-ui, sans-serif';
-        ctx.fillText('Best: ' + best, 18, 58);
+        ctx.fillText('Best: ' + best, W / 2, 74);
         ctx.restore();
       }
 
