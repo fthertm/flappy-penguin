@@ -15,9 +15,11 @@ export default {
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1e222a">
   <title>Flappy Penguin</title>
-  <link rel="icon" type="image/svg+xml" href="${icons}favicon.svg">
-  <link rel="apple-touch-icon" href="${icons}apple-touch-icon.png">
-  <link rel="shortcut icon" href="${icons}favicon.ico">
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/icons/favicon.ico" sizes="48x48">
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="/manifest.webmanifest">
+
   <style>
     * {
       box-sizing: border-box;
