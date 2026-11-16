@@ -601,42 +601,63 @@ export default {
       const cx = x + w / 2;
 
       if (isTop) {
-        const colH = Math.max(0, h - tipH);
+        const effTipH = Math.min(tipH, h);
+        const colH = h - effTipH;
         const ts = py + colH;
         const tip = py + h;
 
-        ctx.fillStyle = '#81a1c1';
-        ctx.fillRect(x, py, w, colH);
-        ctx.fillStyle = '#5e81ac';
-        ctx.fillRect(x + w - 10, py, 10, colH);
-        ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
-        ctx.fillRect(x + 5, py, 6, colH);
-        ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
-        ctx.fillRect(x + 14, py, 2, colH);
-
-        // Overlap 1px upward and 0.5px horizontally to prevent subpixel gaps during shake
-        ctx.fillStyle = '#81a1c1';
+        ctx.save();
         ctx.beginPath();
-        ctx.moveTo(x, ts - 1);
-        ctx.lineTo(x + w - 10, ts - 1);
-        ctx.lineTo(cx + 0.5, tip);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#5e81ac';
-        ctx.beginPath();
-        ctx.moveTo(x + w - 10, ts - 1);
-        ctx.lineTo(x + w, ts - 1);
+        ctx.moveTo(x, py);
+        ctx.lineTo(x + w, py);
+        ctx.lineTo(x + w, ts);
         ctx.lineTo(cx, tip);
+        ctx.lineTo(x, ts);
+        ctx.closePath();
+
+        ctx.fillStyle = '#81a1c1';
+        ctx.fill();
+        ctx.clip();
+
+        // Kesintisiz sağ gölge
+        ctx.fillStyle = '#5e81ac';
+        ctx.beginPath();
+        ctx.moveTo(x + w - 10, py);
+        ctx.lineTo(x + w, py);
+        ctx.lineTo(x + w, ts);
+        ctx.lineTo(cx, tip);
+        ctx.lineTo(cx, ts);
+        ctx.lineTo(x + w - 10, ts);
         ctx.closePath();
         ctx.fill();
 
-        ctx.strokeStyle = 'rgba(236, 239, 244, 0.35)';
-        ctx.lineWidth = 2;
+        // Kesintisiz buz parıltısı
+        ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
         ctx.beginPath();
-        ctx.moveTo(x + 8, ts);
-        ctx.lineTo(cx - 2, tip - 8);
-        ctx.stroke();
+        ctx.moveTo(x + 5, py);
+        ctx.lineTo(x + 11, py);
+        ctx.lineTo(x + 11, ts);
+        ctx.lineTo(cx - 2, tip);
+        ctx.lineTo(cx - 5, tip);
+        ctx.lineTo(x + 5, ts);
+        ctx.closePath();
+        ctx.fill();
+
+        // İnce ışık çizgisi
+        ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
+        ctx.beginPath();
+        ctx.moveTo(x + 14, py);
+        ctx.lineTo(x + 16, py);
+        ctx.lineTo(x + 16, ts);
+        ctx.lineTo(cx - 0.5, tip);
+        ctx.lineTo(cx - 1.5, tip);
+        ctx.lineTo(x + 14, ts);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
       } else {
+        ctx.save();
         ctx.fillStyle = '#81a1c1';
         ctx.fillRect(x, py, w, h);
         ctx.fillStyle = '#5e81ac';
@@ -646,6 +667,7 @@ export default {
         ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
         ctx.fillRect(x + 14, py, 2, h);
 
+        // Kar şapkası ve gölgesi
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
         ctx.roundRect(x - 3, py, w + 6, 11, [5, 5, 3, 3]);
@@ -655,26 +677,46 @@ export default {
         ctx.arc(cx + 5, py + 12, 4, 0, Math.PI * 2);
         ctx.arc(x + w - 8, py + 11, 3, 0, Math.PI * 2);
         ctx.fill();
+
         ctx.fillStyle = '#d8dee9';
         ctx.beginPath();
         ctx.roundRect(x + w - 10, py + 1, 13, 10, [0, 5, 3, 0]);
         ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + w - 8, py + 11, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
     }
 
-    // Tapered hitbox matching top icicle tip
-    function hitsTopPipe(p, pX, py, pSize, pipeW) {
-      const bx0 = pX + 3, bx1 = pX + pSize - 3;
-      const ty = py + 3;
-      if (ty >= p.top) return false;
-      const cx = p.x + pipeW / 2;
-      const tipStart = p.top - tipH;
-      if (ty < tipStart) {
-        return bx1 > p.x - 2 && bx0 < p.x + pipeW + 2;
+    // Görsel sınırlarla birebir uyumlu çarpışma kontrolü
+    function hitsPipe(p, pX, py, pSize, pipeW) {
+      // Penguenin görsel elipsine yakın daraltılmış çarpışma kutusu
+      const bx0 = pX + 4;
+      const bx1 = pX + pSize - 2;
+      const by0 = py + 3;
+      const by1 = py + pSize - 2;
+
+      // Alt engel kontrolü
+      if (bx1 > p.x && bx0 < p.x + pipeW && by1 > p.bottom) {
+        return true;
       }
-      const f = (p.top - ty) / tipH;
-      const hw = (pipeW / 2) * f + 2;
-      return bx1 > cx - hw && bx0 < cx + hw;
+
+      // Üst engel kontrolü (eğimli uç dahil)
+      if (by0 < p.top) {
+        const effTipH = Math.min(tipH, p.top);
+        const tipStart = p.top - effTipH;
+        const cx = p.x + pipeW / 2;
+
+        if (by0 < tipStart) {
+          return bx1 > p.x && bx0 < p.x + pipeW;
+        }
+        const f = (p.top - by0) / effTipH;
+        const hw = (pipeW / 2) * f;
+        return bx1 > cx - hw && bx0 < cx + hw;
+      }
+
+      return false;
     }
 
     function drawMuteButton() {
@@ -894,9 +936,7 @@ export default {
         drawIceBlockPipe(p.x, p.bottom, pipeW, playHeight - p.bottom, false);
 
         if (!crashed) {
-          const hitBottom = pX + pSize - 3 > p.x - 2 && pX + 3 < p.x + pipeW + 2 &&
-                            y + pSize - 3 > p.bottom;
-          if (hitBottom || hitsTopPipe(p, pX, y, pSize, pipeW)) {
+          if (hitsPipe(p, pX, y, pSize, pipeW)) {
             triggerCrash();
           }
           if (!p.passed && p.x + pipeW < pX) {
