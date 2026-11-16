@@ -161,16 +161,15 @@ export default {
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
-    // Mantıksal çözünürlük 480x440; çizim çözünürlüğü ekran DPI'sına göre (en fazla 2x)
     const W = 480, H = 440;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const reduceMotion = false
+    const reduceMotion = false;
 
-    // Web Audio API (Saf, doğal ses sentezi)
+    // Web Audio synthesis
     let audioCtx = null;
     let muted = localStorage.getItem('flappy_penguin_muted') === 'true';
 
@@ -250,7 +249,6 @@ export default {
       osc.stop(now + 0.22);
     }
 
-    // Sabit arka plan yıldızları ve hareketli kar taneleri
     const stars = Array.from({ length: 22 }, () => ({
       x: Math.random() * 480,
       y: Math.random() * 230,
@@ -265,7 +263,6 @@ export default {
       s: Math.random() * 0.6 + 0.35
     }));
 
-    // Arka plan karlı dağ katmanları
     const farMountains = [
       { x: 0, w: 180, h: 145, snowRatio: 0.36 },
       { x: 140, w: 210, h: 175, snowRatio: 0.38 },
@@ -383,7 +380,7 @@ export default {
       }
     }, { passive: false });
 
-    // Aurora: bir kez ayrı bir canvas'a çizilir, her karede yalnızca kaydırılır
+    // Pre-render aurora strip to an offscreen canvas
     const aurora = (() => {
       const AW = 480, AH = 190;
       const c = document.createElement('canvas');
@@ -419,7 +416,6 @@ export default {
       ctx.drawImage(aurora.c, ox, 0);
       ctx.drawImage(aurora.c, ox + aurora.AW, 0);
 
-      // İkinci, ters yönlü ve ayna katman: yavaş dalgalanma hissi verir
       ctx.globalAlpha = 0.45 + Math.sin(t * 0.021 + 1) * 0.25;
       ctx.translate(W, 14);
       ctx.scale(-1, 0.85);
@@ -433,7 +429,6 @@ export default {
       const peakX = m.x + m.w * 0.5;
       const peakY = baseY - m.h;
 
-      // Ana dağ gövdesi
       ctx.fillStyle = bodyColor;
       ctx.beginPath();
       ctx.moveTo(m.x, baseY);
@@ -442,7 +437,6 @@ export default {
       ctx.closePath();
       ctx.fill();
 
-      // Sağ yamaç gölgesi
       ctx.fillStyle = shadeColor;
       ctx.beginPath();
       ctx.moveTo(peakX, peakY);
@@ -451,7 +445,6 @@ export default {
       ctx.closePath();
       ctx.fill();
 
-      // Zirve kar örtüsü (zikzak kenarlı)
       const snowH = m.h * m.snowRatio;
       const leftSnowX = peakX - (m.w * 0.5) * m.snowRatio;
       const rightSnowX = peakX + (m.w * 0.5) * m.snowRatio;
@@ -468,7 +461,6 @@ export default {
       ctx.closePath();
       ctx.fill();
 
-      // Kar örtüsü sağ gölge yüzeyi
       ctx.fillStyle = snowShade;
       ctx.beginPath();
       ctx.moveTo(peakX, peakY);
@@ -480,7 +472,6 @@ export default {
     }
 
     function drawBackground() {
-      // Sade derin kutup gecesi gökyüzü
       const skyGrad = ctx.createLinearGradient(0, 0, 0, playHeight);
       skyGrad.addColorStop(0, '#1e222a');
       skyGrad.addColorStop(1, '#292f3b');
@@ -489,7 +480,6 @@ export default {
 
       drawAurora();
 
-      // Uzak yıldızlar
       for (const s of stars) {
         ctx.fillStyle = 'rgba(236, 239, 244, ' + s.a + ')';
         ctx.beginPath();
@@ -497,7 +487,6 @@ export default {
         ctx.fill();
       }
 
-      // Uzak karlı dağ sırası
       for (const m of farMountains) {
         if (started && !crashed) {
           m.x -= 0.25;
@@ -506,7 +495,6 @@ export default {
         drawSnowyMountain(m, playHeight, '#2e3644', '#272e3a', '#aeb9c7', '#8f9cab');
       }
 
-      // Yakın karlı dağ sırası
       for (const m of nearMountains) {
         if (started && !crashed) {
           m.x -= 0.55;
@@ -526,7 +514,6 @@ export default {
       ctx.rect(0, gy, W, groundHeight);
       ctx.clip();
 
-      // Buz çatlağı çizgileri (zeminle birlikte kayar)
       ctx.strokeStyle = 'rgba(136, 192, 208, 0.30)';
       ctx.lineWidth = 1;
       ctx.lineJoin = 'round';
@@ -546,11 +533,9 @@ export default {
         ctx.stroke();
       }
 
-      // Buz mavisi çizgi
       ctx.fillStyle = '#88c0d0';
       ctx.fillRect(0, gy + 8, W, 3);
 
-      // Karlı, dalgalı çıkıntılar
       ctx.fillStyle = '#e5e9f0';
       ctx.beginPath();
       ctx.moveTo(0, gy + 9);
@@ -572,45 +557,51 @@ export default {
       if (!started) angle = Math.sin(frame * 0.08) * 0.08;
       ctx.rotate(angle);
 
-      // Ayaklar
       ctx.fillStyle = '#d08770';
       ctx.beginPath();
-      ctx.ellipse(-5, 13, 5, 2.5, 0, 0, Math.PI * 2);
-      ctx.ellipse(4, 13, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(-5, 12, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(4, 12, 5, 2.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Gövde: gökyüzünden ayrılması için daha açık ton + buz mavisi kenar ışığı
-      ctx.fillStyle = '#3d4a60';
       ctx.beginPath();
       ctx.ellipse(0, 0, 14, 13, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#3d4a60';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(136, 192, 208, 0.85)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
-      // Göğüs
+      // Clip inner details to the body silhouette
+      ctx.save();
+      ctx.clip();
+
       ctx.fillStyle = '#eceff4';
       ctx.beginPath();
-      ctx.ellipse(3, 2, 9, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(4, 3, 8.5, 9.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Kırmızı atkı ve hıza göre dalgalanan kuyruğu
       ctx.strokeStyle = '#bf616a';
-      ctx.lineCap = 'round';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(-11, -4);
-      ctx.quadraticCurveTo(0, 3, 12, 0);
+      ctx.moveTo(-14, -3);
+      ctx.quadraticCurveTo(0, 3, 14, -1);
       ctx.stroke();
+
+      ctx.restore();
+
+      ctx.strokeStyle = 'rgba(136, 192, 208, 0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 14, 13, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
       const wave = Math.sin(frame * 0.35) * 2.5 - Math.max(-4, Math.min(4, vel * 0.7));
+      ctx.strokeStyle = '#bf616a';
+      ctx.lineCap = 'round';
       ctx.lineWidth = 3.2;
       ctx.beginPath();
-      ctx.moveTo(-10, -3);
-      ctx.quadraticCurveTo(-15, -1 + wave * 0.4, -20, -4 + wave);
+      ctx.moveTo(-10, -2);
+      ctx.quadraticCurveTo(-15, 0 + wave * 0.4, -20, -3 + wave);
       ctx.stroke();
       ctx.lineCap = 'butt';
 
-      // Göz
       ctx.fillStyle = '#1b1f27';
       ctx.beginPath();
       ctx.arc(6, -4, 2.2, 0, Math.PI * 2);
@@ -620,7 +611,6 @@ export default {
       ctx.arc(6.7, -4.7, 0.8, 0, Math.PI * 2);
       ctx.fill();
 
-      // Gaga
       ctx.fillStyle = '#ebcb8b';
       ctx.beginPath();
       ctx.moveTo(12, -2);
@@ -629,7 +619,6 @@ export default {
       ctx.closePath();
       ctx.fill();
 
-      // Kanat: çırpınca yukarı savrulup geri döner
       let wingAngle = 0.35, wingLift = 0;
       if (!started) {
         wingAngle = Math.sin(frame * 0.14) * 0.35;
@@ -642,6 +631,7 @@ export default {
       ctx.beginPath();
       ctx.ellipse(-3, 2 - wingLift, 7, 3.8, wingAngle, 0, Math.PI * 2);
       ctx.fill();
+
       ctx.restore();
     }
 
@@ -650,7 +640,6 @@ export default {
       const cx = x + w / 2;
 
       if (isTop) {
-        // Tavandan sarkan buz sütunu; son tipH px aşağı doğru sivrilir
         const colH = Math.max(0, h - tipH);
         const ts = py + colH;
         const tip = py + h;
@@ -664,7 +653,6 @@ export default {
         ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
         ctx.fillRect(x + 14, py, 2, colH);
 
-        // Sivri uç: sol yüz açık, sağ yüz gölgeli
         ctx.fillStyle = '#81a1c1';
         ctx.beginPath();
         ctx.moveTo(x, ts);
@@ -687,7 +675,6 @@ export default {
         ctx.lineTo(cx - 2, tip - 8);
         ctx.stroke();
       } else {
-        // Yerden yükselen buz sütunu, üstü karla kaplı
         ctx.fillStyle = '#81a1c1';
         ctx.fillRect(x, py, w, h);
         ctx.fillStyle = '#5e81ac';
@@ -697,7 +684,6 @@ export default {
         ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
         ctx.fillRect(x + 14, py, 2, h);
 
-        // Kar başlığı
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
         ctx.roundRect(x - 3, py, w + 6, 11, [5, 5, 3, 3]);
@@ -714,7 +700,7 @@ export default {
       }
     }
 
-    // Üst engelde uç sivrildiği için çarpışma da aynı şekle uyar (haksız ölüm olmasın)
+    // Match top pipe hitbox to its tapered icicle tip
     function hitsTopPipe(p, pX, py, pSize, pipeW) {
       const bx0 = pX + 3, bx1 = pX + pSize - 3;
       const ty = py + 3;
@@ -777,14 +763,12 @@ export default {
       ctx.save();
       ctx.textAlign = 'center';
 
-      // Başlık
       ctx.shadowColor = 'rgba(36, 41, 51, 0.85)';
       ctx.shadowBlur = 8;
       ctx.fillStyle = '#eceff4';
       ctx.font = '700 28px system-ui, sans-serif';
       ctx.fillText('Get Ready!', W / 2, 118);
 
-      // Hafif yukarı-aşağı süzülen küçük yönlendirme kapsülü
       const bob = Math.sin(frame * 0.08) * 4;
       const boxW = 210;
       const boxH = 34;
@@ -809,7 +793,6 @@ export default {
 
     function drawGameOverCard() {
       ctx.save();
-      // Hafif karartma perdesi
       ctx.fillStyle = 'rgba(30, 34, 42, 0.52)';
       ctx.fillRect(0, 0, W, H);
 
@@ -818,7 +801,6 @@ export default {
       const cardX = (W - cardW) / 2;
       const cardY = (playHeight - cardH) / 2;
 
-      // Nord skor kartı
       ctx.shadowColor = 'rgba(36, 41, 51, 0.7)';
       ctx.shadowBlur = 16;
       ctx.fillStyle = '#3b4252';
@@ -836,7 +818,6 @@ export default {
       ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText('Game Over', W / 2, cardY + 38);
 
-      // Skor kutusu
       const innerX = cardX + 20;
       const innerY = cardY + 54;
       const innerW = cardW - 40;
@@ -847,7 +828,6 @@ export default {
       ctx.roundRect(innerX, innerY, innerW, innerH, 8);
       ctx.fill();
 
-      // Sol sütun: Score
       ctx.fillStyle = '#aeb8c4';
       ctx.font = '600 11px system-ui, sans-serif';
       ctx.fillText('score', innerX + innerW * 0.27, innerY + 24);
@@ -855,14 +835,12 @@ export default {
       ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText(score, innerX + innerW * 0.27, innerY + 54);
 
-      // Orta ayırıcı çizgi
       ctx.strokeStyle = 'rgba(216, 222, 233, 0.12)';
       ctx.beginPath();
       ctx.moveTo(W / 2, innerY + 14);
       ctx.lineTo(W / 2, innerY + innerH - 14);
       ctx.stroke();
 
-      // Sağ sütun: Best
       ctx.fillStyle = '#aeb8c4';
       ctx.font = '600 11px system-ui, sans-serif';
       ctx.fillText('best', innerX + innerW * 0.73, innerY + 24);
@@ -870,7 +848,6 @@ export default {
       ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText(best, innerX + innerW * 0.73, innerY + 54);
 
-      // Yeni rekor etiketi
       if (isNewBest && score > 0) {
         ctx.fillStyle = '#bf616a';
         ctx.beginPath();
@@ -881,7 +858,6 @@ export default {
         ctx.fillText('new', innerX + innerW - 24, innerY + 3);
       }
 
-      // Tekrar oyna butonu
       const btnW = 146;
       const btnH = 32;
       const btnX = (W - btnW) / 2;
@@ -902,7 +878,6 @@ export default {
     function loop() {
       ctx.clearRect(0, 0, W, H);
 
-      // Dünya katmanı (çarpmada kısa sarsıntı; reduced-motion'da kapalı)
       ctx.save();
       if (shakeT > 0) {
         const m = shakeT * 5;
@@ -913,7 +888,6 @@ export default {
 
       drawBackground();
 
-      // Yağan kar taneleri
       ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
       for (const f of flakes) {
         f.y += f.s;
@@ -1006,7 +980,6 @@ export default {
       flapT = Math.max(0, flapT - 0.09);
       scorePop = Math.max(0, scorePop - 0.07);
 
-      // Oyun içi canlı skor: merkezde, puan alınca kısa süre büyür
       if (started && !gameOver) {
         ctx.save();
         ctx.textAlign = 'center';
