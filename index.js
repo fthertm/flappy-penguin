@@ -279,7 +279,7 @@ export default {
     ];
 
     let particles = [];
-    let flapT = 0, shakeT = 0, scorePop = 0, auroraT = 0;
+    let shakeT = 0, scorePop = 0, auroraT = 0;
     const tipH = 30;
     const groundHeight = 28;
     const playHeight = H - groundHeight;
@@ -312,7 +312,6 @@ export default {
       gameOver = false; started = true; crashed = false; isNewBest = false;
       scorePop = 0; shakeT = 0;
       vel = jump;
-      flapT = 1;
       playFlapSound();
       spawnSnowBurst(100, y + 18, 6);
     }
@@ -324,7 +323,6 @@ export default {
         reset();
       } else if (!crashed) {
         vel = jump;
-        flapT = 1;
         playFlapSound();
         spawnSnowBurst(100, y + 18, 5);
       }
@@ -379,7 +377,7 @@ export default {
       }
     }, { passive: false });
 
-    // Pre-render aurora onto an offscreen canvas for scrolling
+    // Pre-rendered aurora layer
     const aurora = (() => {
       const AW = 480, AH = 190;
       const c = document.createElement('canvas');
@@ -556,42 +554,22 @@ export default {
       if (!started) angle = Math.sin(frame * 0.08) * 0.08;
       ctx.rotate(angle);
 
-      // Feet
       ctx.fillStyle = '#d08770';
       ctx.beginPath();
       ctx.ellipse(-5, 13, 5, 2.5, 0, 0, Math.PI * 2);
       ctx.ellipse(4, 13, 5, 2.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Body
-      ctx.fillStyle = '#3d4a60';
+      ctx.fillStyle = '#1b1f27';
       ctx.beginPath();
       ctx.ellipse(0, 0, 14, 13, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Belly
       ctx.fillStyle = '#eceff4';
       ctx.beginPath();
       ctx.ellipse(3, 2, 9, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Scarf
-      ctx.strokeStyle = '#bf616a';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(-11, -4);
-      ctx.quadraticCurveTo(0, 3, 12, 0);
-      ctx.stroke();
-      const wave = Math.sin(frame * 0.35) * 2.5 - Math.max(-4, Math.min(4, vel * 0.7));
-      ctx.lineWidth = 3.2;
-      ctx.beginPath();
-      ctx.moveTo(-10, -3);
-      ctx.quadraticCurveTo(-15, -1 + wave * 0.4, -20, -4 + wave);
-      ctx.stroke();
-      ctx.lineCap = 'butt';
-
-      // Eye
       ctx.fillStyle = '#1b1f27';
       ctx.beginPath();
       ctx.arc(6, -4, 2.2, 0, Math.PI * 2);
@@ -601,7 +579,6 @@ export default {
       ctx.arc(6.7, -4.7, 0.8, 0, Math.PI * 2);
       ctx.fill();
 
-      // Beak
       ctx.fillStyle = '#ebcb8b';
       ctx.beginPath();
       ctx.moveTo(12, -2);
@@ -610,18 +587,11 @@ export default {
       ctx.closePath();
       ctx.fill();
 
-      // Wing
-      let wingAngle = 0.35, wingLift = 0;
-      if (!started) {
-        wingAngle = Math.sin(frame * 0.14) * 0.35;
-      } else if (flapT > 0) {
-        const k = Math.sin((1 - flapT) * Math.PI);
-        wingAngle = 0.35 - k * 1.3;
-        wingLift = k * 3;
-      }
-      ctx.fillStyle = '#272e3b';
+      ctx.fillStyle = '#3b4252';
+      let wingAngle = vel < 0 ? -0.5 : 0.35;
+      if (!started) wingAngle = Math.sin(frame * 0.14) * 0.35;
       ctx.beginPath();
-      ctx.ellipse(-3, 2 - wingLift, 7, 3.8, wingAngle, 0, Math.PI * 2);
+      ctx.ellipse(-3, 2, 7, 3.8, wingAngle, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
@@ -644,17 +614,18 @@ export default {
         ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
         ctx.fillRect(x + 14, py, 2, colH);
 
+        // Overlap 1px upward and 0.5px horizontally to prevent subpixel gaps during shake
         ctx.fillStyle = '#81a1c1';
         ctx.beginPath();
-        ctx.moveTo(x, ts);
-        ctx.lineTo(x + w - 10, ts);
-        ctx.lineTo(cx, tip);
+        ctx.moveTo(x, ts - 1);
+        ctx.lineTo(x + w - 10, ts - 1);
+        ctx.lineTo(cx + 0.5, tip);
         ctx.closePath();
         ctx.fill();
         ctx.fillStyle = '#5e81ac';
         ctx.beginPath();
-        ctx.moveTo(x + w - 10, ts);
-        ctx.lineTo(x + w, ts);
+        ctx.moveTo(x + w - 10, ts - 1);
+        ctx.lineTo(x + w, ts - 1);
         ctx.lineTo(cx, tip);
         ctx.closePath();
         ctx.fill();
@@ -691,7 +662,7 @@ export default {
       }
     }
 
-    // Tapered hitbox matching the pointed tip of top icicles
+    // Tapered hitbox matching top icicle tip
     function hitsTopPipe(p, pX, py, pSize, pipeW) {
       const bx0 = pX + 3, bx1 = pX + pSize - 3;
       const ty = py + 3;
@@ -968,7 +939,6 @@ export default {
       drawPenguin(pX, y);
       ctx.restore();
 
-      flapT = Math.max(0, flapT - 0.09);
       scorePop = Math.max(0, scorePop - 0.07);
 
       if (started && !gameOver) {
