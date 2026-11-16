@@ -11,9 +11,9 @@ export default {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="theme-color" content="#1e222a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1e222a">
   <title>Flappy Penguin</title>
   <link rel="icon" type="image/svg+xml" href="${icons}favicon.svg">
   <link rel="apple-touch-icon" href="${icons}apple-touch-icon.png">
@@ -30,10 +30,10 @@ export default {
       height: 100dvh;
       overflow: hidden;
       background: #1e222a;
-      user-select: none;
-      -webkit-user-select: none;
       touch-action: none;
       overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
     canvas {
       display: block;
@@ -41,54 +41,149 @@ export default {
       height: 100dvh;
       cursor: pointer;
     }
+    .nav-btn {
+      position: fixed;
+      top: calc(14px + env(safe-area-inset-top));
+      left: calc(14px + env(safe-area-inset-left));
+      z-index: 10;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(46, 52, 64, 0.72);
+      border: 1px solid rgba(216, 222, 233, 0.2);
+      color: #eceff4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .nav-btn:hover {
+      background: rgba(59, 66, 82, 0.9);
+    }
+    .nav-btn:active {
+      transform: scale(0.95);
+    }
+    .nav-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
   </style>
 </head>
 <body>
+  <a class="nav-btn" href="https://${domain}" aria-label="Back to Dashboard">
+    <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+  </a>
+
   <canvas id="game"></canvas>
 
   <script>
-    const APEX_URL = "https://${domain}";
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
     const H = 480;
     let W = 800;
-    let dpr = 1;
-    let safeTop = 0, safeLeft = 0, safeRight = 0, safeBottom = 0;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    function updateSafeAreas() {
-      const probe = document.createElement('div');
-      probe.style.cssText = 'position:fixed;top:env(safe-area-inset-top);left:env(safe-area-inset-left);right:env(safe-area-inset-right);bottom:env(safe-area-inset-bottom);pointer-events:none;visibility:hidden;';
-      document.body.appendChild(probe);
-      const rect = probe.getBoundingClientRect();
-      const viewH = window.innerHeight || 1;
-      const scale = H / viewH;
-      safeTop = rect.top * scale;
-      safeLeft = rect.left * scale;
-      safeRight = (window.innerWidth - rect.right) * scale;
-      safeBottom = (viewH - rect.bottom) * scale;
-      document.body.removeChild(probe);
+    const groundHeight = 28;
+    const playHeight = H - groundHeight;
+    const muteBtn = { x: W - 50, y: 14, w: 36, h: 36 };
+
+    const stars = [];
+    const flakes = [];
+    const farMountains = [];
+    const nearMountains = [];
+    let farSpan = 0;
+    let nearSpan = 0;
+
+    function initScenery() {
+      stars.length = 0;
+      const starCount = Math.max(28, Math.round(W * 0.065));
+      for (let i = 0; i < starCount; i++) {
+        stars.push({
+          x: Math.random() * W,
+          y: Math.random() * (playHeight * 0.62),
+          r: Math.random() * 1.15 + 0.4,
+          a: Math.random() * 0.45 + 0.15
+        });
+      }
+
+      flakes.length = 0;
+      const flakeCount = Math.max(36, Math.round(W * 0.08));
+      for (let i = 0; i < flakeCount; i++) {
+        flakes.push({
+          x: Math.random() * W,
+          y: Math.random() * playHeight,
+          r: Math.random() * 2 + 1,
+          s: Math.random() * 0.6 + 0.35
+        });
+      }
+
+      farMountains.length = 0;
+      let fx = 0;
+      const farTemplates = [
+        { w: 190, h: 155, snowRatio: 0.36 },
+        { w: 225, h: 185, snowRatio: 0.38 },
+        { w: 200, h: 145, snowRatio: 0.35 },
+        { w: 215, h: 175, snowRatio: 0.37 },
+        { w: 210, h: 160, snowRatio: 0.36 }
+      ];
+      let fi = 0;
+      while (fx < W + 450) {
+        const tpl = farTemplates[fi % farTemplates.length];
+        farMountains.push({ x: fx, w: tpl.w, h: tpl.h, snowRatio: tpl.snowRatio });
+        fx += tpl.w * 0.82;
+        fi++;
+      }
+      farSpan = fx;
+
+      nearMountains.length = 0;
+      let nx = 15;
+      const nearTemplates = [
+        { w: 160, h: 112, snowRatio: 0.34 },
+        { w: 180, h: 132, snowRatio: 0.36 },
+        { w: 165, h: 102, snowRatio: 0.33 },
+        { w: 175, h: 124, snowRatio: 0.35 },
+        { w: 160, h: 108, snowRatio: 0.34 }
+      ];
+      let ni = 0;
+      while (nx < W + 400) {
+        const tpl = nearTemplates[ni % nearTemplates.length];
+        nearMountains.push({ x: nx, w: tpl.w, h: tpl.h, snowRatio: tpl.snowRatio });
+        nx += tpl.w * 0.84;
+        ni++;
+      }
+      nearSpan = nx - 15;
     }
 
     function resize() {
-      const viewW = window.innerWidth || 800;
-      const viewH = window.innerHeight || 480;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const aspect = vw / Math.max(1, vh);
+      W = Math.max(320, Math.round(H * aspect));
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = Math.max(280, Math.round(H * (viewW / viewH)));
-      canvas.width = Math.round(viewW * dpr);
-      canvas.height = Math.round(viewH * dpr);
-      const scaleX = canvas.width / W;
-      const scaleY = canvas.height / H;
-      ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
-      updateSafeAreas();
+
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      muteBtn.x = W - 50;
+      muteBtn.y = 14;
+
+      initScenery();
     }
 
     window.addEventListener('resize', resize);
-    window.addEventListener('orientationchange', () => setTimeout(resize, 100));
     resize();
 
     const reduceMotion = false;
-
     let audioCtx = null;
     let muted = localStorage.getItem('flappy_penguin_muted') === 'true';
 
@@ -168,51 +263,8 @@ export default {
       osc.stop(now + 0.22);
     }
 
-    const stars = Array.from({ length: 48 }, () => ({
-      x: Math.random() * 1800,
-      y: Math.random() * 260,
-      r: Math.random() * 1.1 + 0.4,
-      a: Math.random() * 0.4 + 0.15
-    }));
-
-    const flakes = Array.from({ length: 56 }, () => ({
-      x: Math.random() * 1800,
-      y: Math.random() * 450,
-      r: Math.random() * 2 + 1,
-      s: Math.random() * 0.6 + 0.35
-    }));
-
-    const farMountains = [
-      { x: 0, w: 200, h: 155, snowRatio: 0.36 },
-      { x: 160, w: 230, h: 185, snowRatio: 0.38 },
-      { x: 350, w: 210, h: 145, snowRatio: 0.35 },
-      { x: 520, w: 200, h: 175, snowRatio: 0.37 },
-      { x: 690, w: 220, h: 160, snowRatio: 0.36 },
-      { x: 870, w: 210, h: 180, snowRatio: 0.38 },
-      { x: 1050, w: 230, h: 150, snowRatio: 0.35 },
-      { x: 1240, w: 200, h: 170, snowRatio: 0.37 },
-      { x: 1410, w: 220, h: 160, snowRatio: 0.36 },
-      { x: 1600, w: 210, h: 175, snowRatio: 0.37 }
-    ];
-
-    const nearMountains = [
-      { x: 20, w: 170, h: 115, snowRatio: 0.34 },
-      { x: 170, w: 190, h: 135, snowRatio: 0.36 },
-      { x: 335, w: 175, h: 105, snowRatio: 0.33 },
-      { x: 485, w: 185, h: 128, snowRatio: 0.35 },
-      { x: 645, w: 170, h: 110, snowRatio: 0.34 },
-      { x: 795, w: 195, h: 132, snowRatio: 0.36 },
-      { x: 965, w: 180, h: 108, snowRatio: 0.34 },
-      { x: 1125, w: 190, h: 125, snowRatio: 0.35 },
-      { x: 1295, w: 175, h: 112, snowRatio: 0.34 },
-      { x: 1455, w: 190, h: 130, snowRatio: 0.36 },
-      { x: 1625, w: 180, h: 115, snowRatio: 0.35 }
-    ];
-
     let particles = [];
     let shakeT = 0, scorePop = 0, auroraT = 0;
-    const groundHeight = 30;
-    const playHeight = H - groundHeight;
     let groundOffset = 0;
 
     let y = 205, vel = 0, gravity = 0.36, jump = -6.5;
@@ -222,19 +274,7 @@ export default {
     let gameOver = false, started = false, crashed = false;
 
     function getPenguinX() {
-      return Math.max(68, Math.min(160, Math.round(W * 0.22)));
-    }
-
-    function getBackBtn() {
-      return { x: Math.round(14 + safeLeft), y: Math.round(14 + safeTop), w: 34, h: 34 };
-    }
-
-    function getMuteBtn() {
-      return { x: Math.round(W - 48 - safeRight), y: Math.round(14 + safeTop), w: 34, h: 34 };
-    }
-
-    function goApex() {
-      window.location.href = APEX_URL;
+      return Math.max(68, Math.min(180, Math.round(W * 0.22)));
     }
 
     function spawnSnowBurst(bx, by, count) {
@@ -294,16 +334,8 @@ export default {
       const cx = (clientX - rect.left) * scaleX;
       const cy = (clientY - rect.top) * scaleY;
 
-      const backBtn = getBackBtn();
-      if (cx >= backBtn.x - 6 && cx <= backBtn.x + backBtn.w + 6 &&
-          cy >= backBtn.y - 6 && cy <= backBtn.y + backBtn.h + 6) {
-        goApex();
-        return;
-      }
-
-      const muteBtn = getMuteBtn();
-      if (cx >= muteBtn.x - 6 && cx <= muteBtn.x + muteBtn.w + 6 &&
-          cy >= muteBtn.y - 6 && cy <= muteBtn.y + muteBtn.h + 6) {
+      if (cx >= muteBtn.x - 8 && cx <= muteBtn.x + muteBtn.w + 8 &&
+          cy >= muteBtn.y - 8 && cy <= muteBtn.y + muteBtn.h + 8) {
         muted = !muted;
         localStorage.setItem('flappy_penguin_muted', muted);
         if (!muted) initAudio();
@@ -320,7 +352,7 @@ export default {
         muted = !muted;
         localStorage.setItem('flappy_penguin_muted', muted);
       } else if (e.code === 'Escape') {
-        goApex();
+        window.location.href = 'https://${domain}';
       }
     });
     canvas.addEventListener('mousedown', e => handlePointer(e.clientX, e.clientY));
@@ -331,27 +363,39 @@ export default {
       }
     }, { passive: false });
 
+    // Geliştirilmiş Aurora: 960px genişlik (tekrarı azaltır), dikey ışık perdeleri ve yumuşak alt geçiş
     const aurora = (() => {
-      const AW = 480, AH = 200;
+      const AW = 960, AH = 240;
       const c = document.createElement('canvas');
       c.width = AW; c.height = AH;
       const g = c.getContext('2d');
       const green = [163, 190, 140], ice = [136, 192, 208], purple = [180, 142, 173];
       const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+
       for (let x = 0; x < AW; x++) {
         const th = (x / AW) * Math.PI * 2;
-        const base = 82 + Math.sin(th * 2) * 16 + Math.sin(th * 3 + 1.3) * 9;
-        const len = 64 + Math.sin(th * 4 + 0.7) * 16 + Math.sin(th * 7) * 7;
-        const strength = 0.55 + 0.45 * Math.sin(th * 3 + 0.4);
+        const base = 98 + Math.sin(th * 2) * 20 + Math.sin(th * 3 + 1.3) * 11 + Math.cos(th * 5 - 0.6) * 5;
+        const len = 76 + Math.sin(th * 4 + 0.7) * 18 + Math.sin(th * 7) * 9;
+
+        // Kuzey ışıklarına özgü dikey ışık huzmeleri (ray streaks)
+        const rayPrimary = Math.pow((Math.sin(th * 19 + Math.sin(th * 3) * 1.4) + 1) / 2, 1.8);
+        const raySecondary = Math.pow((Math.sin(th * 37 + 1.1) + 1) / 2, 2.2);
+        const envelope = 0.5 + 0.5 * Math.sin(th * 2 + 0.4);
+        const strength = (0.32 + 0.48 * rayPrimary + 0.2 * raySecondary) * (0.65 + 0.35 * envelope);
+
         let col = mix(green, ice, (Math.sin(th * 2 + 0.5) + 1) / 2);
-        col = mix(col, purple, Math.max(0, Math.sin(th * 3 - 0.8)) * 0.7);
+        col = mix(col, purple, Math.max(0, Math.sin(th * 3 - 0.8)) * 0.72);
         const rgb = col.join(',');
-        const top = base - len;
-        const total = len * 1.35;
+
+        const top = Math.max(0, base - len);
+        const total = len * 1.55;
         const grad = g.createLinearGradient(0, top, 0, top + total);
         grad.addColorStop(0, 'rgba(' + rgb + ',0)');
-        grad.addColorStop(0.74, 'rgba(' + rgb + ',' + (0.5 * strength).toFixed(3) + ')');
+        grad.addColorStop(0.35, 'rgba(' + rgb + ',' + (0.22 * strength).toFixed(3) + ')');
+        grad.addColorStop(0.68, 'rgba(' + rgb + ',' + (0.56 * strength).toFixed(3) + ')');
+        grad.addColorStop(0.84, 'rgba(' + rgb + ',' + (0.18 * strength).toFixed(3) + ')');
         grad.addColorStop(1, 'rgba(' + rgb + ',0)');
+
         g.fillStyle = grad;
         g.fillRect(x, top, 1, total);
       }
@@ -361,19 +405,26 @@ export default {
     function drawAurora() {
       const t = auroraT;
       ctx.save();
-      ctx.globalAlpha = 0.85 + Math.sin(t * 0.013) * 0.15;
-      let ox = -((t * 0.10) % aurora.AW);
-      for (let x = ox; x < W + aurora.AW; x += aurora.AW) {
+      ctx.globalCompositeOperation = 'screen';
+
+      // 1. Ana perde katmanı
+      ctx.globalAlpha = 0.78 + Math.sin(t * 0.011) * 0.14;
+      let ox = -((t * 0.12) % aurora.AW);
+      for (let x = ox; x < W; x += aurora.AW) {
         ctx.drawImage(aurora.c, x, 0);
       }
 
-      ctx.globalAlpha = 0.45 + Math.sin(t * 0.021 + 1) * 0.25;
-      ctx.translate(W, 14);
-      ctx.scale(-1, 0.85);
-      ox = -((t * 0.06) % aurora.AW);
-      for (let x = ox; x < W + aurora.AW; x += aurora.AW) {
+      // 2. Ters yönlü ikinci katman (perdelerin birbirinin içinden süzülme hissi verir)
+      ctx.globalAlpha = 0.42 + Math.sin(t * 0.019 + 1.2) * 0.2;
+      ctx.save();
+      ctx.translate(W, 18);
+      ctx.scale(-1, 0.88);
+      ox = -((t * 0.075) % aurora.AW);
+      for (let x = ox; x < W; x += aurora.AW) {
         ctx.drawImage(aurora.c, x, 0);
       }
+      ctx.restore();
+
       ctx.restore();
     }
 
@@ -433,33 +484,26 @@ export default {
       drawAurora();
 
       for (const s of stars) {
-        const sx = s.x % Math.max(W, 480);
         ctx.fillStyle = 'rgba(236, 239, 244, ' + s.a + ')';
         ctx.beginPath();
-        ctx.arc(sx, s.y, s.r, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      const farSpan = Math.max(1760, W + 400);
       for (const m of farMountains) {
         if (started && !crashed) {
           m.x -= 0.25;
           if (m.x + m.w < 0) m.x += farSpan;
         }
-        if (m.x < W + 50) {
-          drawSnowyMountain(m, playHeight, '#2e3644', '#272e3a', '#aeb9c7', '#8f9cab');
-        }
+        drawSnowyMountain(m, playHeight, '#2e3644', '#272e3a', '#aeb9c7', '#8f9cab');
       }
 
-      const nearSpan = Math.max(1740, W + 400);
       for (const m of nearMountains) {
         if (started && !crashed) {
           m.x -= 0.55;
           if (m.x + m.w < 0) m.x += nearSpan;
         }
-        if (m.x < W + 50) {
-          drawSnowyMountain(m, playHeight, '#364052', '#2d3646', '#d8dee9', '#b8c3d1');
-        }
+        drawSnowyMountain(m, playHeight, '#364052', '#2d3646', '#d8dee9', '#b8c3d1');
       }
     }
 
@@ -481,13 +525,13 @@ export default {
       const off = groundOffset % cs;
       for (let gx = -cs + off; gx < W + cs; gx += cs) {
         ctx.beginPath();
-        ctx.moveTo(gx + 10, gy + 14);
-        ctx.lineTo(gx + 22, gy + 19);
-        ctx.lineTo(gx + 17, gy + 26);
-        ctx.moveTo(gx + 22, gy + 19);
-        ctx.lineTo(gx + 34, gy + 18);
-        ctx.moveTo(gx + 52, gy + 15);
-        ctx.lineTo(gx + 58, gy + 24);
+        ctx.moveTo(gx + 10, gy + 13);
+        ctx.lineTo(gx + 22, gy + 18);
+        ctx.lineTo(gx + 17, gy + 24);
+        ctx.moveTo(gx + 22, gy + 18);
+        ctx.lineTo(gx + 34, gy + 17);
+        ctx.moveTo(gx + 52, gy + 14);
+        ctx.lineTo(gx + 58, gy + 22);
         ctx.stroke();
       }
 
@@ -495,10 +539,10 @@ export default {
       ctx.beginPath();
       ctx.moveTo(0, gy);
       ctx.lineTo(W, gy);
-      ctx.lineTo(W, gy + 13);
+      ctx.lineTo(W, gy + 12);
       for (let x = W; x >= 0; x -= 6) {
         const ph = x - groundOffset;
-        ctx.lineTo(x, gy + 9.5 + Math.sin(ph * 0.045) * 2.2 + Math.cos(ph * 0.11) * 1.1);
+        ctx.lineTo(x, gy + 9 + Math.sin(ph * 0.045) * 2.2 + Math.cos(ph * 0.11) * 1.1);
       }
       ctx.closePath();
       ctx.fill();
@@ -507,10 +551,10 @@ export default {
       ctx.beginPath();
       ctx.moveTo(0, gy);
       ctx.lineTo(W, gy);
-      ctx.lineTo(W, gy + 8.5);
+      ctx.lineTo(W, gy + 8);
       for (let x = W; x >= 0; x -= 6) {
         const ph = x - groundOffset;
-        ctx.lineTo(x, gy + 6 + Math.sin(ph * 0.045) * 2.0 + Math.cos(ph * 0.11) * 0.9);
+        ctx.lineTo(x, gy + 5.5 + Math.sin(ph * 0.045) * 2.0 + Math.cos(ph * 0.11) * 0.9);
       }
       ctx.closePath();
       ctx.fill();
@@ -589,17 +633,24 @@ export default {
       ctx.fillRect(x + 14, py, 2, h);
 
       if (isTop) {
-        const capY = py + h - 10;
+        const capH = Math.min(11, h);
+        const capY = py + h - capH;
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(x - 3, capY, w + 6, capH, [3, 3, 5, 5]);
         ctx.fillStyle = '#88c0d0';
-        ctx.beginPath();
-        ctx.roundRect(x - 3, capY, w + 6, 10, [3, 3, 5, 5]);
         ctx.fill();
+        ctx.clip();
+
+        ctx.fillStyle = 'rgba(236, 239, 244, 0.45)';
+        ctx.fillRect(x + 2, capY, 7, capH);
+
         ctx.fillStyle = '#5e81ac';
-        ctx.beginPath();
-        ctx.roundRect(x + w - 10, capY, 13, 10, [0, 3, 5, 0]);
-        ctx.fill();
+        ctx.fillRect(x + w - 10, capY, 13, capH);
+
         ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
-        ctx.fillRect(x, capY + 2, w - 11, 2);
+        ctx.fillRect(x - 3, capY + capH - 2, w + 6, 2);
+        ctx.restore();
       } else {
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
@@ -631,41 +682,13 @@ export default {
              py + 3 < p.top;
     }
 
-    function drawBackButton() {
-      const btn = getBackBtn();
-      ctx.save();
-      ctx.fillStyle = 'rgba(46, 52, 64, 0.65)';
-      ctx.beginPath();
-      ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 8);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(216, 222, 233, 0.22)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.strokeStyle = '#eceff4';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      const cx = btn.x + btn.w / 2;
-      const cy = btn.y + btn.h / 2;
-      ctx.beginPath();
-      ctx.moveTo(cx + 5, cy);
-      ctx.lineTo(cx - 5, cy);
-      ctx.moveTo(cx - 1, cy - 4.5);
-      ctx.lineTo(cx - 5.5, cy);
-      ctx.lineTo(cx - 1, cy + 4.5);
-      ctx.stroke();
-      ctx.restore();
-    }
-
     function drawMuteButton() {
-      const muteBtn = getMuteBtn();
       ctx.save();
-      ctx.fillStyle = 'rgba(46, 52, 64, 0.65)';
+      ctx.fillStyle = 'rgba(46, 52, 64, 0.72)';
       ctx.beginPath();
       ctx.roundRect(muteBtn.x, muteBtn.y, muteBtn.w, muteBtn.h, 8);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(216, 222, 233, 0.22)';
+      ctx.strokeStyle = 'rgba(216, 222, 233, 0.2)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -673,8 +696,8 @@ export default {
       ctx.strokeStyle = muted ? '#bf616a' : '#eceff4';
       ctx.lineWidth = 1.8;
 
-      const cx = muteBtn.x + 10;
-      const cy = muteBtn.y + 17;
+      const cx = muteBtn.x + 11;
+      const cy = muteBtn.y + 18;
       ctx.beginPath();
       ctx.moveTo(cx, cy - 3);
       ctx.lineTo(cx + 4, cy - 3);
@@ -707,14 +730,14 @@ export default {
       ctx.save();
       ctx.textAlign = 'center';
 
-      const boxW = 146;
+      const boxW = 148;
       const boxH = 38;
       const boxX = (W - boxW) / 2;
-      const boxY = 272;
+      const boxY = 264;
 
       ctx.fillStyle = 'rgba(59, 66, 82, 0.85)';
       ctx.beginPath();
-      ctx.roundRect(boxX, boxY, boxW, boxH, 9);
+      ctx.roundRect(boxX, boxY, boxW, boxH, 8);
       ctx.fill();
       ctx.strokeStyle = 'rgba(136, 192, 208, 0.45)';
       ctx.lineWidth = 1.2;
@@ -732,8 +755,8 @@ export default {
       ctx.fillStyle = 'rgba(30, 34, 42, 0.52)';
       ctx.fillRect(0, 0, W, H);
 
-      const cardW = Math.min(260, W - 32);
-      const cardH = 190;
+      const cardW = 260;
+      const cardH = 192;
       const cardX = (W - cardW) / 2;
       const cardY = (playHeight - cardH) / 2;
 
@@ -794,10 +817,10 @@ export default {
         ctx.fillText('new', innerX + innerW - 24, innerY + 3);
       }
 
-      const btnW = 148;
+      const btnW = 152;
       const btnH = 34;
       const btnX = (W - btnW) / 2;
-      const btnY = cardY + 142;
+      const btnY = cardY + 143;
 
       ctx.fillStyle = '#5e81ac';
       ctx.beginPath();
@@ -824,21 +847,22 @@ export default {
 
       drawBackground();
 
-      const flakeSpan = Math.max(W, 480);
       ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
       for (const f of flakes) {
         f.y += f.s;
         f.x -= 0.45;
-        if (f.y > playHeight) { f.y = 0; f.x = Math.random() * flakeSpan; }
-        if (f.x < 0) f.x += flakeSpan;
-        if (f.x <= W) {
-          ctx.beginPath();
-          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        if (f.y > playHeight) { f.y = 0; f.x = Math.random() * W; }
+        if (f.x < 0) f.x = W;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      const speed = 2.5;
+      const speed = 2.6;
+      const pipeSpacing = 240;
+      const pX = getPenguinX();
+      const pSize = 26, pipeW = 50;
+
       if (!started) {
         frame++;
         groundOffset -= 1.2;
@@ -849,12 +873,12 @@ export default {
         frame++;
         groundOffset -= speed;
 
-        if (frame % 98 === 0) {
-          let gap = 132;
+        if (pipes.length === 0 || pipes[pipes.length - 1].x <= W - pipeSpacing) {
+          let gap = 136;
           let minTop = 52;
           let maxTop = playHeight - gap - 52;
           let topH = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
-          pipes.push({ x: W + 16, top: topH, bottom: topH + gap, passed: false });
+          pipes.push({ x: W + 20, top: topH, bottom: topH + gap, passed: false });
         }
       } else if (!gameOver) {
         vel += gravity * 1.15;
@@ -864,7 +888,6 @@ export default {
 
       drawGround();
 
-      const pX = getPenguinX(), pSize = 26, pipeW = 50;
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
         if (started && !crashed) p.x -= speed;
@@ -885,7 +908,7 @@ export default {
             playScoreSound();
           }
         }
-        if (p.x + pipeW + 16 < 0) pipes.splice(i, 1);
+        if (p.x + pipeW + 10 < 0) pipes.splice(i, 1);
       }
 
       for (let i = particles.length - 1; i >= 0; i--) {
@@ -919,17 +942,16 @@ export default {
       scorePop = Math.max(0, scorePop - 0.07);
 
       if (started && !gameOver) {
-        const topOffset = Math.round(safeTop);
         ctx.save();
         ctx.textAlign = 'center';
         ctx.shadowColor = 'rgba(30, 34, 42, 0.85)';
         ctx.shadowBlur = 6;
         ctx.shadowOffsetY = 1;
-        ctx.translate(W / 2, 54 + topOffset);
+        ctx.translate(W / 2, 54);
         const sc = 1 + 0.3 * scorePop;
         ctx.scale(sc, sc);
         ctx.fillStyle = '#eceff4';
-        ctx.font = '700 34px system-ui, sans-serif';
+        ctx.font = '700 36px system-ui, sans-serif';
         ctx.fillText(score, 0, 0);
         ctx.restore();
 
@@ -937,11 +959,10 @@ export default {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#d8dee9';
         ctx.font = '600 13px system-ui, sans-serif';
-        ctx.fillText('Best: ' + best, W / 2, 76 + topOffset);
+        ctx.fillText('Best: ' + best, W / 2, 76);
         ctx.restore();
       }
 
-      drawBackButton();
       drawMuteButton();
 
       if (!started) {
