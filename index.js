@@ -161,7 +161,6 @@ export default {
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
-    // Logical size 480x440, capped at 2x DPR
     const W = 480, H = 440;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(W * dpr);
@@ -380,7 +379,7 @@ export default {
       }
     }, { passive: false });
 
-    // Pre-render aurora strip once for fast horizontal scrolling
+    // Pre-render aurora onto an offscreen canvas for scrolling
     const aurora = (() => {
       const AW = 480, AH = 190;
       const c = document.createElement('canvas');
@@ -557,81 +556,73 @@ export default {
       if (!started) angle = Math.sin(frame * 0.08) * 0.08;
       ctx.rotate(angle);
 
+      // Feet
       ctx.fillStyle = '#d08770';
       ctx.beginPath();
-      ctx.ellipse(-4, 12.5, 4.5, 2.2, 0, 0, Math.PI * 2);
-      ctx.ellipse(4, 12.5, 4.5, 2.2, 0, 0, Math.PI * 2);
+      ctx.ellipse(-5, 13, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(4, 13, 5, 2.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 13.5, 13, 0, 0, Math.PI * 2);
+      // Body
       ctx.fillStyle = '#3d4a60';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 14, 13, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Clip belly and neck scarf inside body silhouette
-      ctx.save();
-      ctx.clip();
-
+      // Belly
       ctx.fillStyle = '#eceff4';
       ctx.beginPath();
-      ctx.ellipse(4, 6.5, 8.5, 7.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(3, 2, 9, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = '#bf616a';
-      ctx.lineWidth = 3.6;
-      ctx.beginPath();
-      ctx.moveTo(-14, 0.5);
-      ctx.quadraticCurveTo(0, 3.5, 14, 1);
-      ctx.stroke();
-
-      ctx.restore();
-
-      ctx.strokeStyle = 'rgba(136, 192, 208, 0.85)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 13.5, 13, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      const wave = Math.sin(frame * 0.35) * 2.5 - Math.max(-4, Math.min(4, vel * 0.7));
+      // Scarf
       ctx.strokeStyle = '#bf616a';
       ctx.lineCap = 'round';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(-10, 1);
-      ctx.quadraticCurveTo(-15, 2 + wave * 0.4, -20, -1 + wave);
+      ctx.moveTo(-11, -4);
+      ctx.quadraticCurveTo(0, 3, 12, 0);
+      ctx.stroke();
+      const wave = Math.sin(frame * 0.35) * 2.5 - Math.max(-4, Math.min(4, vel * 0.7));
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(-10, -3);
+      ctx.quadraticCurveTo(-15, -1 + wave * 0.4, -20, -4 + wave);
       ctx.stroke();
       ctx.lineCap = 'butt';
 
+      // Eye
       ctx.fillStyle = '#1b1f27';
       ctx.beginPath();
-      ctx.arc(5.5, -5, 2.2, 0, Math.PI * 2);
+      ctx.arc(6, -4, 2.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(6.2, -5.7, 0.8, 0, Math.PI * 2);
+      ctx.arc(6.7, -4.7, 0.8, 0, Math.PI * 2);
       ctx.fill();
 
+      // Beak
       ctx.fillStyle = '#ebcb8b';
       ctx.beginPath();
-      ctx.moveTo(11.5, -4);
-      ctx.lineTo(19.5, -1.5);
-      ctx.lineTo(11.5, 1);
+      ctx.moveTo(12, -2);
+      ctx.lineTo(20, 1);
+      ctx.lineTo(12, 4);
       ctx.closePath();
       ctx.fill();
 
+      // Wing
       let wingAngle = 0.35, wingLift = 0;
       if (!started) {
         wingAngle = Math.sin(frame * 0.14) * 0.35;
       } else if (flapT > 0) {
         const k = Math.sin((1 - flapT) * Math.PI);
         wingAngle = 0.35 - k * 1.3;
-        wingLift = k * 2.5;
+        wingLift = k * 3;
       }
       ctx.fillStyle = '#272e3b';
       ctx.beginPath();
-      ctx.ellipse(-2.5, 4.5 - wingLift, 6.5, 3.5, wingAngle, 0, Math.PI * 2);
+      ctx.ellipse(-3, 2 - wingLift, 7, 3.8, wingAngle, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.restore();
     }
 
@@ -700,7 +691,7 @@ export default {
       }
     }
 
-    // Match hitbox to tapered icicle tip
+    // Tapered hitbox matching the pointed tip of top icicles
     function hitsTopPipe(p, pX, py, pSize, pipeW) {
       const bx0 = pX + 3, bx1 = pX + pSize - 3;
       const ty = py + 3;
