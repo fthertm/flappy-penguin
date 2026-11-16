@@ -11,15 +11,20 @@ export default {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1e222a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#1e222a">
   <title>Flappy Penguin</title>
   <link rel="icon" type="image/svg+xml" href="${icons}favicon.svg">
   <link rel="apple-touch-icon" href="${icons}apple-touch-icon.png">
   <link rel="shortcut icon" href="${icons}favicon.ico">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
     html, body {
       width: 100vw;
       height: 100dvh;
@@ -42,132 +47,45 @@ export default {
   <canvas id="game"></canvas>
 
   <script>
+    const APEX_URL = "https://${domain}";
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
     const H = 480;
-    let W = 760;
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let W = 800;
+    let dpr = 1;
+    let safeTop = 0, safeLeft = 0, safeRight = 0, safeBottom = 0;
 
-    const groundHeight = 28;
-    const playHeight = H - groundHeight;
-
-    let stars = [];
-    let flakes = [];
-    let farMountains = [];
-    let nearMountains = [];
-    let farSpan = 0;
-    let nearSpan = 0;
-
-    let safeTop = 0;
-    let safeLeft = 0;
-    let safeRight = 0;
-
-    function getSafeInsets() {
+    function updateSafeAreas() {
       const probe = document.createElement('div');
-      probe.style.cssText = 'position:fixed;top:env(safe-area-inset-top,0px);left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);pointer-events:none;visibility:hidden;';
+      probe.style.cssText = 'position:fixed;top:env(safe-area-inset-top);left:env(safe-area-inset-left);right:env(safe-area-inset-right);bottom:env(safe-area-inset-bottom);pointer-events:none;visibility:hidden;';
       document.body.appendChild(probe);
       const rect = probe.getBoundingClientRect();
-      const vw = window.innerWidth || 1;
-      const vh = window.innerHeight || 1;
-      const scale = H / vh;
+      const viewH = window.innerHeight || 1;
+      const scale = H / viewH;
       safeTop = rect.top * scale;
       safeLeft = rect.left * scale;
-      safeRight = Math.max(0, (vw - rect.right) * scale);
+      safeRight = (window.innerWidth - rect.right) * scale;
+      safeBottom = (viewH - rect.bottom) * scale;
       document.body.removeChild(probe);
     }
 
-    const backBtn = { x: 14, y: 14, w: 34, h: 34 };
-    const muteBtn = { x: W - 48, y: 14, w: 34, h: 34 };
-
-    function updateUIPositions() {
-      const topY = Math.max(14, safeTop + 10);
-      backBtn.x = Math.max(14, safeLeft + 12);
-      backBtn.y = topY;
-      muteBtn.x = W - muteBtn.w - Math.max(14, safeRight + 12);
-      muteBtn.y = topY;
-    }
-
-    function initScenery() {
-      const span = Math.max(W + 300, 960);
-
-      const starCount = Math.max(24, Math.round((span / 760) * 34));
-      stars = Array.from({ length: starCount }, () => ({
-        x: Math.random() * span,
-        y: Math.random() * 250,
-        r: Math.random() * 1.1 + 0.4,
-        a: Math.random() * 0.4 + 0.15
-      }));
-
-      const flakeCount = Math.max(32, Math.round((span / 760) * 48));
-      flakes = Array.from({ length: flakeCount }, () => ({
-        x: Math.random() * span,
-        y: Math.random() * playHeight,
-        r: Math.random() * 2 + 1,
-        s: Math.random() * 0.6 + 0.35
-      }));
-
-      farMountains = [];
-      let fx = 0;
-      const farWidths = [180, 210, 190, 180, 200];
-      const farHeights = [155, 188, 145, 175, 160];
-      let fi = 0;
-      while (fx < span) {
-        const w = farWidths[fi % farWidths.length];
-        const h = farHeights[fi % farHeights.length];
-        farMountains.push({
-          x: fx,
-          w,
-          h,
-          snowRatio: 0.35 + (fi % 4) * 0.01
-        });
-        fx += w - 35;
-        fi++;
-      }
-      farSpan = fx;
-
-      nearMountains = [];
-      let nx = 15;
-      const nearWidths = [150, 170, 155, 165, 150];
-      const nearHeights = [115, 135, 102, 128, 108];
-      let ni = 0;
-      while (nx < span) {
-        const w = nearWidths[ni % nearWidths.length];
-        const h = nearHeights[ni % nearHeights.length];
-        nearMountains.push({
-          x: nx,
-          w,
-          h,
-          snowRatio: 0.33 + (ni % 4) * 0.01
-        });
-        nx += w - 25;
-        ni++;
-      }
-      nearSpan = nx;
-    }
-
-    function getPenguinX() {
-      return Math.max(68, Math.min(165, Math.round(W * 0.22)));
-    }
-
     function resize() {
-      const vw = window.innerWidth || 480;
-      const vh = window.innerHeight || 480;
+      const viewW = window.innerWidth || 800;
+      const viewH = window.innerHeight || 480;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = Math.max(260, Math.round(H * (vw / vh)));
-      canvas.width = Math.round(W * dpr);
-      canvas.height = Math.round(H * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      getSafeInsets();
-      updateUIPositions();
-      if (farSpan < W + 220) {
-        initScenery();
-      }
+      W = Math.max(280, Math.round(H * (viewW / viewH)));
+      canvas.width = Math.round(viewW * dpr);
+      canvas.height = Math.round(viewH * dpr);
+      const scaleX = canvas.width / W;
+      const scaleY = canvas.height / H;
+      ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+      updateSafeAreas();
     }
 
-    resize();
-    initScenery();
     window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+    resize();
 
     const reduceMotion = false;
 
@@ -250,8 +168,51 @@ export default {
       osc.stop(now + 0.22);
     }
 
+    const stars = Array.from({ length: 48 }, () => ({
+      x: Math.random() * 1800,
+      y: Math.random() * 260,
+      r: Math.random() * 1.1 + 0.4,
+      a: Math.random() * 0.4 + 0.15
+    }));
+
+    const flakes = Array.from({ length: 56 }, () => ({
+      x: Math.random() * 1800,
+      y: Math.random() * 450,
+      r: Math.random() * 2 + 1,
+      s: Math.random() * 0.6 + 0.35
+    }));
+
+    const farMountains = [
+      { x: 0, w: 200, h: 155, snowRatio: 0.36 },
+      { x: 160, w: 230, h: 185, snowRatio: 0.38 },
+      { x: 350, w: 210, h: 145, snowRatio: 0.35 },
+      { x: 520, w: 200, h: 175, snowRatio: 0.37 },
+      { x: 690, w: 220, h: 160, snowRatio: 0.36 },
+      { x: 870, w: 210, h: 180, snowRatio: 0.38 },
+      { x: 1050, w: 230, h: 150, snowRatio: 0.35 },
+      { x: 1240, w: 200, h: 170, snowRatio: 0.37 },
+      { x: 1410, w: 220, h: 160, snowRatio: 0.36 },
+      { x: 1600, w: 210, h: 175, snowRatio: 0.37 }
+    ];
+
+    const nearMountains = [
+      { x: 20, w: 170, h: 115, snowRatio: 0.34 },
+      { x: 170, w: 190, h: 135, snowRatio: 0.36 },
+      { x: 335, w: 175, h: 105, snowRatio: 0.33 },
+      { x: 485, w: 185, h: 128, snowRatio: 0.35 },
+      { x: 645, w: 170, h: 110, snowRatio: 0.34 },
+      { x: 795, w: 195, h: 132, snowRatio: 0.36 },
+      { x: 965, w: 180, h: 108, snowRatio: 0.34 },
+      { x: 1125, w: 190, h: 125, snowRatio: 0.35 },
+      { x: 1295, w: 175, h: 112, snowRatio: 0.34 },
+      { x: 1455, w: 190, h: 130, snowRatio: 0.36 },
+      { x: 1625, w: 180, h: 115, snowRatio: 0.35 }
+    ];
+
     let particles = [];
     let shakeT = 0, scorePop = 0, auroraT = 0;
+    const groundHeight = 30;
+    const playHeight = H - groundHeight;
     let groundOffset = 0;
 
     let y = 205, vel = 0, gravity = 0.36, jump = -6.5;
@@ -259,6 +220,22 @@ export default {
     let best = parseInt(localStorage.getItem('flappy_penguin_best') || '0', 10);
     let isNewBest = false;
     let gameOver = false, started = false, crashed = false;
+
+    function getPenguinX() {
+      return Math.max(68, Math.min(160, Math.round(W * 0.22)));
+    }
+
+    function getBackBtn() {
+      return { x: Math.round(14 + safeLeft), y: Math.round(14 + safeTop), w: 34, h: 34 };
+    }
+
+    function getMuteBtn() {
+      return { x: Math.round(W - 48 - safeRight), y: Math.round(14 + safeTop), w: 34, h: 34 };
+    }
+
+    function goApex() {
+      window.location.href = APEX_URL;
+    }
 
     function spawnSnowBurst(bx, by, count) {
       for (let i = 0; i < count; i++) {
@@ -317,12 +294,14 @@ export default {
       const cx = (clientX - rect.left) * scaleX;
       const cy = (clientY - rect.top) * scaleY;
 
+      const backBtn = getBackBtn();
       if (cx >= backBtn.x - 6 && cx <= backBtn.x + backBtn.w + 6 &&
           cy >= backBtn.y - 6 && cy <= backBtn.y + backBtn.h + 6) {
-        window.location.href = 'https://${domain}';
+        goApex();
         return;
       }
 
+      const muteBtn = getMuteBtn();
       if (cx >= muteBtn.x - 6 && cx <= muteBtn.x + muteBtn.w + 6 &&
           cy >= muteBtn.y - 6 && cy <= muteBtn.y + muteBtn.h + 6) {
         muted = !muted;
@@ -341,7 +320,7 @@ export default {
         muted = !muted;
         localStorage.setItem('flappy_penguin_muted', muted);
       } else if (e.code === 'Escape') {
-        window.location.href = 'https://${domain}';
+        goApex();
       }
     });
     canvas.addEventListener('mousedown', e => handlePointer(e.clientX, e.clientY));
@@ -362,7 +341,7 @@ export default {
       for (let x = 0; x < AW; x++) {
         const th = (x / AW) * Math.PI * 2;
         const base = 82 + Math.sin(th * 2) * 16 + Math.sin(th * 3 + 1.3) * 9;
-        const len = 66 + Math.sin(th * 4 + 0.7) * 16 + Math.sin(th * 7) * 7;
+        const len = 64 + Math.sin(th * 4 + 0.7) * 16 + Math.sin(th * 7) * 7;
         const strength = 0.55 + 0.45 * Math.sin(th * 3 + 0.4);
         let col = mix(green, ice, (Math.sin(th * 2 + 0.5) + 1) / 2);
         col = mix(col, purple, Math.max(0, Math.sin(th * 3 - 0.8)) * 0.7);
@@ -399,7 +378,6 @@ export default {
     }
 
     function drawSnowyMountain(m, baseY, bodyColor, shadeColor, snowColor, snowShade) {
-      if (m.x > W + 20 || m.x + m.w < -20) return;
       const peakX = m.x + m.w * 0.5;
       const peakY = baseY - m.h;
 
@@ -455,27 +433,33 @@ export default {
       drawAurora();
 
       for (const s of stars) {
-        if (s.x > W + 5) continue;
+        const sx = s.x % Math.max(W, 480);
         ctx.fillStyle = 'rgba(236, 239, 244, ' + s.a + ')';
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.arc(sx, s.y, s.r, 0, Math.PI * 2);
         ctx.fill();
       }
 
+      const farSpan = Math.max(1760, W + 400);
       for (const m of farMountains) {
         if (started && !crashed) {
           m.x -= 0.25;
           if (m.x + m.w < 0) m.x += farSpan;
         }
-        drawSnowyMountain(m, playHeight, '#2e3644', '#272e3a', '#aeb9c7', '#8f9cab');
+        if (m.x < W + 50) {
+          drawSnowyMountain(m, playHeight, '#2e3644', '#272e3a', '#aeb9c7', '#8f9cab');
+        }
       }
 
+      const nearSpan = Math.max(1740, W + 400);
       for (const m of nearMountains) {
         if (started && !crashed) {
           m.x -= 0.55;
           if (m.x + m.w < 0) m.x += nearSpan;
         }
-        drawSnowyMountain(m, playHeight, '#364052', '#2d3646', '#d8dee9', '#b8c3d1');
+        if (m.x < W + 50) {
+          drawSnowyMountain(m, playHeight, '#364052', '#2d3646', '#d8dee9', '#b8c3d1');
+        }
       }
     }
 
@@ -497,13 +481,13 @@ export default {
       const off = groundOffset % cs;
       for (let gx = -cs + off; gx < W + cs; gx += cs) {
         ctx.beginPath();
-        ctx.moveTo(gx + 10, gy + 13);
-        ctx.lineTo(gx + 22, gy + 18);
-        ctx.lineTo(gx + 17, gy + 24);
-        ctx.moveTo(gx + 22, gy + 18);
-        ctx.lineTo(gx + 34, gy + 17);
-        ctx.moveTo(gx + 52, gy + 14);
-        ctx.lineTo(gx + 58, gy + 22);
+        ctx.moveTo(gx + 10, gy + 14);
+        ctx.lineTo(gx + 22, gy + 19);
+        ctx.lineTo(gx + 17, gy + 26);
+        ctx.moveTo(gx + 22, gy + 19);
+        ctx.lineTo(gx + 34, gy + 18);
+        ctx.moveTo(gx + 52, gy + 15);
+        ctx.lineTo(gx + 58, gy + 24);
         ctx.stroke();
       }
 
@@ -511,10 +495,10 @@ export default {
       ctx.beginPath();
       ctx.moveTo(0, gy);
       ctx.lineTo(W, gy);
-      ctx.lineTo(W, gy + 12);
+      ctx.lineTo(W, gy + 13);
       for (let x = W; x >= 0; x -= 6) {
         const ph = x - groundOffset;
-        ctx.lineTo(x, gy + 9 + Math.sin(ph * 0.045) * 2.2 + Math.cos(ph * 0.11) * 1.1);
+        ctx.lineTo(x, gy + 9.5 + Math.sin(ph * 0.045) * 2.2 + Math.cos(ph * 0.11) * 1.1);
       }
       ctx.closePath();
       ctx.fill();
@@ -523,10 +507,10 @@ export default {
       ctx.beginPath();
       ctx.moveTo(0, gy);
       ctx.lineTo(W, gy);
-      ctx.lineTo(W, gy + 8);
+      ctx.lineTo(W, gy + 8.5);
       for (let x = W; x >= 0; x -= 6) {
         const ph = x - groundOffset;
-        ctx.lineTo(x, gy + 5.5 + Math.sin(ph * 0.045) * 2.0 + Math.cos(ph * 0.11) * 0.9);
+        ctx.lineTo(x, gy + 6 + Math.sin(ph * 0.045) * 2.0 + Math.cos(ph * 0.11) * 0.9);
       }
       ctx.closePath();
       ctx.fill();
@@ -605,17 +589,17 @@ export default {
       ctx.fillRect(x + 14, py, 2, h);
 
       if (isTop) {
-        const capY = py + h - 11;
+        const capY = py + h - 10;
         ctx.fillStyle = '#88c0d0';
         ctx.beginPath();
-        ctx.roundRect(x - 3, capY, w + 6, 11, [3, 3, 5, 5]);
+        ctx.roundRect(x - 3, capY, w + 6, 10, [3, 3, 5, 5]);
         ctx.fill();
         ctx.fillStyle = '#5e81ac';
         ctx.beginPath();
-        ctx.roundRect(x + w - 10, capY, 13, 11, [0, 3, 5, 0]);
+        ctx.roundRect(x + w - 10, capY, 13, 10, [0, 3, 5, 0]);
         ctx.fill();
         ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
-        ctx.fillRect(x - 1, capY + 2, w - 9, 2);
+        ctx.fillRect(x, capY + 2, w - 11, 2);
       } else {
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
@@ -648,12 +632,13 @@ export default {
     }
 
     function drawBackButton() {
+      const btn = getBackBtn();
       ctx.save();
-      ctx.fillStyle = 'rgba(46, 52, 64, 0.72)';
+      ctx.fillStyle = 'rgba(46, 52, 64, 0.65)';
       ctx.beginPath();
-      ctx.roundRect(backBtn.x, backBtn.y, backBtn.w, backBtn.h, 8);
+      ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 8);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(216, 222, 233, 0.2)';
+      ctx.strokeStyle = 'rgba(216, 222, 233, 0.22)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -661,25 +646,26 @@ export default {
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      const cx = backBtn.x + backBtn.w / 2;
-      const cy = backBtn.y + backBtn.h / 2;
+      const cx = btn.x + btn.w / 2;
+      const cy = btn.y + btn.h / 2;
       ctx.beginPath();
       ctx.moveTo(cx + 5, cy);
       ctx.lineTo(cx - 5, cy);
-      ctx.moveTo(cx - 1, cy - 4);
-      ctx.lineTo(cx - 5, cy);
-      ctx.lineTo(cx - 1, cy + 4);
+      ctx.moveTo(cx - 1, cy - 4.5);
+      ctx.lineTo(cx - 5.5, cy);
+      ctx.lineTo(cx - 1, cy + 4.5);
       ctx.stroke();
       ctx.restore();
     }
 
     function drawMuteButton() {
+      const muteBtn = getMuteBtn();
       ctx.save();
-      ctx.fillStyle = 'rgba(46, 52, 64, 0.72)';
+      ctx.fillStyle = 'rgba(46, 52, 64, 0.65)';
       ctx.beginPath();
       ctx.roundRect(muteBtn.x, muteBtn.y, muteBtn.w, muteBtn.h, 8);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(216, 222, 233, 0.2)';
+      ctx.strokeStyle = 'rgba(216, 222, 233, 0.22)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -721,10 +707,10 @@ export default {
       ctx.save();
       ctx.textAlign = 'center';
 
-      const boxW = Math.min(180, W - 40);
+      const boxW = 146;
       const boxH = 38;
       const boxX = (W - boxW) / 2;
-      const boxY = 278;
+      const boxY = 272;
 
       ctx.fillStyle = 'rgba(59, 66, 82, 0.85)';
       ctx.beginPath();
@@ -746,8 +732,8 @@ export default {
       ctx.fillStyle = 'rgba(30, 34, 42, 0.52)';
       ctx.fillRect(0, 0, W, H);
 
-      const cardW = Math.min(250, W - 32);
-      const cardH = 186;
+      const cardW = Math.min(260, W - 32);
+      const cardH = 190;
       const cardX = (W - cardW) / 2;
       const cardY = (playHeight - cardH) / 2;
 
@@ -771,7 +757,7 @@ export default {
       const innerX = cardX + 20;
       const innerY = cardY + 54;
       const innerW = cardW - 40;
-      const innerH = 74;
+      const innerH = 76;
 
       ctx.fillStyle = '#2e3440';
       ctx.beginPath();
@@ -783,7 +769,7 @@ export default {
       ctx.fillText('score', innerX + innerW * 0.27, innerY + 24);
       ctx.fillStyle = '#eceff4';
       ctx.font = '700 24px system-ui, sans-serif';
-      ctx.fillText(score, innerX + innerW * 0.27, innerY + 54);
+      ctx.fillText(score, innerX + innerW * 0.27, innerY + 55);
 
       ctx.strokeStyle = 'rgba(216, 222, 233, 0.12)';
       ctx.beginPath();
@@ -796,7 +782,7 @@ export default {
       ctx.fillText('best', innerX + innerW * 0.73, innerY + 24);
       ctx.fillStyle = '#88c0d0';
       ctx.font = '700 24px system-ui, sans-serif';
-      ctx.fillText(best, innerX + innerW * 0.73, innerY + 54);
+      ctx.fillText(best, innerX + innerW * 0.73, innerY + 55);
 
       if (isNewBest && score > 0) {
         ctx.fillStyle = '#bf616a';
@@ -808,10 +794,10 @@ export default {
         ctx.fillText('new', innerX + innerW - 24, innerY + 3);
       }
 
-      const btnW = Math.min(146, innerW);
-      const btnH = 32;
+      const btnW = 148;
+      const btnH = 34;
       const btnX = (W - btnW) / 2;
-      const btnY = cardY + 140;
+      const btnY = cardY + 142;
 
       ctx.fillStyle = '#5e81ac';
       ctx.beginPath();
@@ -820,7 +806,7 @@ export default {
 
       ctx.fillStyle = '#eceff4';
       ctx.font = '600 13px system-ui, sans-serif';
-      ctx.fillText('Play Again', W / 2, btnY + 21);
+      ctx.fillText('Play Again', W / 2, btnY + 22);
 
       ctx.restore();
     }
@@ -838,26 +824,21 @@ export default {
 
       drawBackground();
 
-      const flakeSpan = Math.max(W + 100, 960);
+      const flakeSpan = Math.max(W, 480);
       ctx.fillStyle = 'rgba(236, 239, 244, 0.35)';
       for (const f of flakes) {
         f.y += f.s;
         f.x -= 0.45;
         if (f.y > playHeight) { f.y = 0; f.x = Math.random() * flakeSpan; }
         if (f.x < 0) f.x += flakeSpan;
-        if (f.x <= W + 5) {
+        if (f.x <= W) {
           ctx.beginPath();
           ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
-      const speed = 2.6;
-      const pX = getPenguinX();
-      const pSize = 26;
-      const pipeW = 50;
-      const pipeSpacing = 250;
-
+      const speed = 2.5;
       if (!started) {
         frame++;
         groundOffset -= 1.2;
@@ -868,12 +849,12 @@ export default {
         frame++;
         groundOffset -= speed;
 
-        if (pipes.length === 0 || (W + 20 - pipes[pipes.length - 1].x) >= pipeSpacing) {
+        if (frame % 98 === 0) {
           let gap = 132;
-          let minTop = 54;
-          let maxTop = playHeight - gap - 54;
+          let minTop = 52;
+          let maxTop = playHeight - gap - 52;
           let topH = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
-          pipes.push({ x: W + 20, top: topH, bottom: topH + gap, passed: false });
+          pipes.push({ x: W + 16, top: topH, bottom: topH + gap, passed: false });
         }
       } else if (!gameOver) {
         vel += gravity * 1.15;
@@ -883,6 +864,7 @@ export default {
 
       drawGround();
 
+      const pX = getPenguinX(), pSize = 26, pipeW = 50;
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
         if (started && !crashed) p.x -= speed;
@@ -903,7 +885,7 @@ export default {
             playScoreSound();
           }
         }
-        if (p.x + pipeW + 10 < 0) pipes.splice(i, 1);
+        if (p.x + pipeW + 16 < 0) pipes.splice(i, 1);
       }
 
       for (let i = particles.length - 1; i >= 0; i--) {
@@ -937,17 +919,17 @@ export default {
       scorePop = Math.max(0, scorePop - 0.07);
 
       if (started && !gameOver) {
-        const scoreY = Math.max(54, safeTop + 46);
+        const topOffset = Math.round(safeTop);
         ctx.save();
         ctx.textAlign = 'center';
         ctx.shadowColor = 'rgba(30, 34, 42, 0.85)';
         ctx.shadowBlur = 6;
         ctx.shadowOffsetY = 1;
-        ctx.translate(W / 2, scoreY);
+        ctx.translate(W / 2, 54 + topOffset);
         const sc = 1 + 0.3 * scorePop;
         ctx.scale(sc, sc);
         ctx.fillStyle = '#eceff4';
-        ctx.font = '700 36px system-ui, sans-serif';
+        ctx.font = '700 34px system-ui, sans-serif';
         ctx.fillText(score, 0, 0);
         ctx.restore();
 
@@ -955,7 +937,7 @@ export default {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#d8dee9';
         ctx.font = '600 13px system-ui, sans-serif';
-        ctx.fillText('Best: ' + best, W / 2, scoreY + 22);
+        ctx.fillText('Best: ' + best, W / 2, 76 + topOffset);
         ctx.restore();
       }
 
