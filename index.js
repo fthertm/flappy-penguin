@@ -502,45 +502,56 @@ export default {
 
     function drawGround() {
       const gy = playHeight;
+      ctx.save();
+
+      // 1. Deep ice shelf base matching Nord palette
       ctx.fillStyle = '#3b4252';
       ctx.fillRect(0, gy, W, groundHeight);
 
-      ctx.save();
       ctx.beginPath();
       ctx.rect(0, gy, W, groundHeight);
       ctx.clip();
 
-      ctx.strokeStyle = 'rgba(136, 192, 208, 0.30)';
+      // 2. Subtle frosted ice cracks inside the frozen ground
+      ctx.strokeStyle = 'rgba(136, 192, 208, 0.24)';
       ctx.lineWidth = 1;
       ctx.lineJoin = 'round';
-      const cs = 64;
+      const cs = 72;
       const off = groundOffset % cs;
       for (let gx = -cs + off; gx < W + cs; gx += cs) {
         ctx.beginPath();
-        ctx.moveTo(gx + 6, gy + 11);
-        ctx.lineTo(gx + 15, gy + 16);
-        ctx.lineTo(gx + 11, gy + 20);
-        ctx.lineTo(gx + 22, gy + 26);
-        ctx.moveTo(gx + 15, gy + 16);
-        ctx.lineTo(gx + 27, gy + 15);
-        ctx.moveTo(gx + 44, gy + 12);
-        ctx.lineTo(gx + 49, gy + 19);
-        ctx.lineTo(gx + 46, gy + 24);
+        ctx.moveTo(gx + 10, gy + 13);
+        ctx.lineTo(gx + 22, gy + 18);
+        ctx.lineTo(gx + 17, gy + 24);
+        ctx.moveTo(gx + 22, gy + 18);
+        ctx.lineTo(gx + 34, gy + 17);
+        ctx.moveTo(gx + 52, gy + 14);
+        ctx.lineTo(gx + 58, gy + 22);
         ctx.stroke();
       }
 
-      ctx.fillStyle = '#88c0d0';
-      ctx.fillRect(0, gy + 8, W, 3);
-
-      // Snow layer anchored seamlessly from gy down to the ice trim
-      ctx.fillStyle = '#e5e9f0';
+      // 3. Soft ice rim transition beneath snow
+      ctx.fillStyle = '#81a1c1';
       ctx.beginPath();
       ctx.moveTo(0, gy);
       ctx.lineTo(W, gy);
-      ctx.lineTo(W, gy + 9);
-      for (let x = W; x >= 0; x -= 4) {
+      ctx.lineTo(W, gy + 12);
+      for (let x = W; x >= 0; x -= 6) {
         const ph = x - groundOffset;
-        ctx.lineTo(x, gy + 5.5 + Math.sin(ph * 0.07) * 2.0 + Math.sin(ph * 0.19) * 0.9);
+        ctx.lineTo(x, gy + 9 + Math.sin(ph * 0.045) * 2.2 + Math.cos(ph * 0.11) * 1.1);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // 4. Organic undulating snowdrift top layer
+      ctx.fillStyle = '#eceff4';
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(W, gy);
+      ctx.lineTo(W, gy + 8);
+      for (let x = W; x >= 0; x -= 6) {
+        const ph = x - groundOffset;
+        ctx.lineTo(x, gy + 5.5 + Math.sin(ph * 0.045) * 2.0 + Math.cos(ph * 0.11) * 0.9);
       }
       ctx.closePath();
       ctx.fill();
@@ -615,46 +626,56 @@ export default {
         const tip = py + h;
 
         ctx.save();
-        // Single unified polygon for the entire icicle
+        // Multi-pronged jagged icicle polygon (eliminates "pencil" silhouette while keeping exact hitbox)
         ctx.beginPath();
-        ctx.moveTo(x, py);
-        ctx.lineTo(x + w, py);
-        ctx.lineTo(x + w, ts);
+        ctx.moveTo(x - 2, py);
+        ctx.lineTo(x + w + 2, py);
+        ctx.lineTo(x + w * 0.94, ts * 0.85 + py * 0.15);
+        ctx.lineTo(x + w * 0.82, Math.min(tip - 6, ts + tipH * 0.55));
+        ctx.lineTo(x + w * 0.68, ts);
         ctx.lineTo(cx, tip);
-        ctx.lineTo(x, ts);
+        ctx.lineTo(x + w * 0.32, ts);
+        ctx.lineTo(x + w * 0.18, Math.min(tip - 5, ts + tipH * 0.6));
+        ctx.lineTo(x + w * 0.06, ts * 0.85 + py * 0.15);
         ctx.closePath();
 
         ctx.fillStyle = '#81a1c1';
         ctx.fill();
         ctx.clip();
 
-        // Proportional right-edge shadow strip tapering cleanly to the tip
+        // Right-edge shadow strip tapering toward main tip
         ctx.fillStyle = '#5e81ac';
         ctx.beginPath();
         ctx.moveTo(x + w - 10, py);
-        ctx.lineTo(x + w, py);
-        ctx.lineTo(x + w, ts);
+        ctx.lineTo(x + w + 2, py);
+        ctx.lineTo(x + w, ts + tipH);
         ctx.lineTo(cx, tip);
         ctx.lineTo(cx - 4, tip);
-        ctx.lineTo(x + w - 10, ts);
+        ctx.lineTo(x + w - 11, ts);
         ctx.closePath();
         ctx.fill();
 
-        // Left ice highlight strip tapering cleanly toward the tip
+        // Left ice highlight strip
         ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
         ctx.beginPath();
-        ctx.moveTo(x + 5, py);
+        ctx.moveTo(x + 4, py);
         ctx.lineTo(x + 11, py);
-        ctx.lineTo(x + 11, ts);
+        ctx.lineTo(x + 12, ts);
         ctx.lineTo(cx - 8, tip);
         ctx.lineTo(cx - 11, tip);
         ctx.lineTo(x + 5, ts);
         ctx.closePath();
         ctx.fill();
 
-        // Inner vertical highlight line
-        ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
+        // Subtle inner vertical glint
+        ctx.fillStyle = 'rgba(236, 239, 244, 0.28)';
         ctx.fillRect(x + 14, py, 2, h);
+
+        // Top ceiling snow overhang
+        ctx.fillStyle = '#eceff4';
+        ctx.beginPath();
+        ctx.roundRect(x - 3, py, w + 6, 8, [0, 0, 4, 4]);
+        ctx.fill();
 
         ctx.restore();
       } else {
@@ -667,6 +688,7 @@ export default {
         ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
         ctx.fillRect(x + 14, py, 2, h);
 
+        // Top snow cap on bottom pillar
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
         ctx.roundRect(x - 3, py, w + 6, 11, [5, 5, 3, 3]);
@@ -679,6 +701,15 @@ export default {
         ctx.fillStyle = '#d8dee9';
         ctx.beginPath();
         ctx.roundRect(x + w - 10, py + 1, 13, 10, [0, 5, 3, 0]);
+        ctx.fill();
+
+        // Base snow mound anchoring the pillar into the ground
+        const baseY = py + h;
+        ctx.fillStyle = '#eceff4';
+        ctx.beginPath();
+        ctx.ellipse(x + 6, baseY + 1, 9, 4.5, 0, Math.PI, Math.PI * 2);
+        ctx.ellipse(cx, baseY + 1, 14, 5.5, 0, Math.PI, Math.PI * 2);
+        ctx.ellipse(x + w - 6, baseY + 1, 9, 4.5, 0, Math.PI, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -905,6 +936,8 @@ export default {
         frame++;
       }
 
+      drawGround();
+
       const pX = 95, pSize = 26, pipeW = 48;
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
@@ -928,8 +961,6 @@ export default {
         }
         if (p.x + pipeW + 10 < 0) pipes.splice(i, 1);
       }
-
-      drawGround();
 
       for (let i = particles.length - 1; i >= 0; i--) {
         let pt = particles[i];
