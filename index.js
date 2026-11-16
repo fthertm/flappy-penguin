@@ -93,9 +93,9 @@ export default {
       border-radius: 6px;
       display: block;
       cursor: pointer;
-      width: min(480px, calc(100vw - 48px), calc((100dvh - 145px) * 480 / 440));
+      width: min(760px, calc(100vw - 48px), calc((100dvh - 145px) * 760 / 480));
       height: auto;
-      aspect-ratio: 480 / 440;
+      aspect-ratio: 760 / 480;
     }
     .hint { font-size: 12px; color: var(--muted); }
     footer {
@@ -150,7 +150,7 @@ export default {
 
   <main>
     <div class="card">
-      <canvas id="game" width="480" height="440"></canvas>
+      <canvas id="game" width="760" height="480"></canvas>
       <div class="hint">Space / Click / Tap to flap</div>
     </div>
   </main>
@@ -161,7 +161,7 @@ export default {
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
-    const W = 480, H = 440;
+    const W = 760, H = 480;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
@@ -248,44 +248,46 @@ export default {
       osc.stop(now + 0.22);
     }
 
-    const stars = Array.from({ length: 22 }, () => ({
-      x: Math.random() * 480,
-      y: Math.random() * 230,
+    const stars = Array.from({ length: 34 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * 250,
       r: Math.random() * 1.1 + 0.4,
       a: Math.random() * 0.4 + 0.15
     }));
 
-    const flakes = Array.from({ length: 32 }, () => ({
-      x: Math.random() * 480,
-      y: Math.random() * 410,
+    const flakes = Array.from({ length: 48 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * (H - 30),
       r: Math.random() * 2 + 1,
       s: Math.random() * 0.6 + 0.35
     }));
 
     const farMountains = [
-      { x: 0, w: 180, h: 145, snowRatio: 0.36 },
-      { x: 140, w: 210, h: 175, snowRatio: 0.38 },
-      { x: 310, w: 190, h: 135, snowRatio: 0.35 },
-      { x: 460, w: 180, h: 165, snowRatio: 0.37 },
-      { x: 610, w: 200, h: 150, snowRatio: 0.36 }
+      { x: 0, w: 180, h: 155, snowRatio: 0.36 },
+      { x: 140, w: 210, h: 185, snowRatio: 0.38 },
+      { x: 310, w: 190, h: 145, snowRatio: 0.35 },
+      { x: 460, w: 180, h: 175, snowRatio: 0.37 },
+      { x: 610, w: 200, h: 160, snowRatio: 0.36 },
+      { x: 780, w: 190, h: 170, snowRatio: 0.37 }
     ];
 
     const nearMountains = [
-      { x: 20, w: 150, h: 105, snowRatio: 0.34 },
-      { x: 150, w: 170, h: 125, snowRatio: 0.36 },
-      { x: 295, w: 155, h: 95, snowRatio: 0.33 },
-      { x: 430, w: 165, h: 118, snowRatio: 0.35 },
-      { x: 575, w: 150, h: 100, snowRatio: 0.34 }
+      { x: 20, w: 150, h: 115, snowRatio: 0.34 },
+      { x: 150, w: 170, h: 135, snowRatio: 0.36 },
+      { x: 295, w: 155, h: 105, snowRatio: 0.33 },
+      { x: 430, w: 165, h: 128, snowRatio: 0.35 },
+      { x: 575, w: 150, h: 110, snowRatio: 0.34 },
+      { x: 710, w: 165, h: 122, snowRatio: 0.35 }
     ];
 
     let particles = [];
     let shakeT = 0, scorePop = 0, auroraT = 0;
-    const tipH = 30;
     const groundHeight = 28;
     const playHeight = H - groundHeight;
     let groundOffset = 0;
 
-    let y = 185, vel = 0, gravity = 0.36, jump = -6.5;
+    const pX = 140, pSize = 26, pipeW = 48;
+    let y = 205, vel = 0, gravity = 0.36, jump = -6.5;
     let pipes = [], frame = 0, score = 0;
     let best = parseInt(localStorage.getItem('flappy_penguin_best') || '0', 10);
     let isNewBest = false;
@@ -307,13 +309,13 @@ export default {
     }
 
     function reset() {
-      y = 185; vel = 0; pipes = []; particles = [];
+      y = 205; vel = 0; pipes = []; particles = [];
       frame = 0; score = 0;
       gameOver = false; started = true; crashed = false; isNewBest = false;
       scorePop = 0; shakeT = 0;
       vel = jump;
       playFlapSound();
-      spawnSnowBurst(100, y + 18, 6);
+      spawnSnowBurst(pX + 5, y + 18, 6);
     }
 
     function flap() {
@@ -324,7 +326,7 @@ export default {
       } else if (!crashed) {
         vel = jump;
         playFlapSound();
-        spawnSnowBurst(100, y + 18, 5);
+        spawnSnowBurst(pX + 5, y + 18, 5);
       }
     }
 
@@ -334,7 +336,7 @@ export default {
         if (!reduceMotion) shakeT = 1;
         vel = fromGround ? 0 : -2.5;
         playCrashSound();
-        spawnSnowBurst(110, y + 14, 14);
+        spawnSnowBurst(pX + 15, y + 14, 14);
         if (score > best) {
           best = score;
           isNewBest = true;
@@ -409,15 +411,17 @@ export default {
       ctx.save();
       ctx.globalAlpha = 0.85 + Math.sin(t * 0.013) * 0.15;
       let ox = -((t * 0.10) % aurora.AW);
-      ctx.drawImage(aurora.c, ox, 0);
-      ctx.drawImage(aurora.c, ox + aurora.AW, 0);
+      for (let x = ox; x < W; x += aurora.AW) {
+        ctx.drawImage(aurora.c, x, 0);
+      }
 
       ctx.globalAlpha = 0.45 + Math.sin(t * 0.021 + 1) * 0.25;
       ctx.translate(W, 14);
       ctx.scale(-1, 0.85);
       ox = -((t * 0.06) % aurora.AW);
-      ctx.drawImage(aurora.c, ox, 0);
-      ctx.drawImage(aurora.c, ox + aurora.AW, 0);
+      for (let x = ox; x < W; x += aurora.AW) {
+        ctx.drawImage(aurora.c, x, 0);
+      }
       ctx.restore();
     }
 
@@ -486,7 +490,7 @@ export default {
       for (const m of farMountains) {
         if (started && !crashed) {
           m.x -= 0.25;
-          if (m.x + m.w < 0) m.x += 780;
+          if (m.x + m.w < 0) m.x += 970;
         }
         drawSnowyMountain(m, playHeight, '#2e3644', '#272e3a', '#aeb9c7', '#8f9cab');
       }
@@ -494,7 +498,7 @@ export default {
       for (const m of nearMountains) {
         if (started && !crashed) {
           m.x -= 0.55;
-          if (m.x + m.w < 0) m.x += 720;
+          if (m.x + m.w < 0) m.x += 875;
         }
         drawSnowyMountain(m, playHeight, '#364052', '#2d3646', '#d8dee9', '#b8c3d1');
       }
@@ -504,7 +508,6 @@ export default {
       const gy = playHeight;
       ctx.save();
 
-      // 1. Deep ice shelf base matching Nord palette
       ctx.fillStyle = '#3b4252';
       ctx.fillRect(0, gy, W, groundHeight);
 
@@ -512,7 +515,6 @@ export default {
       ctx.rect(0, gy, W, groundHeight);
       ctx.clip();
 
-      // 2. Subtle frosted ice cracks inside the frozen ground
       ctx.strokeStyle = 'rgba(136, 192, 208, 0.24)';
       ctx.lineWidth = 1;
       ctx.lineJoin = 'round';
@@ -530,7 +532,6 @@ export default {
         ctx.stroke();
       }
 
-      // 3. Soft ice rim transition beneath snow
       ctx.fillStyle = '#81a1c1';
       ctx.beginPath();
       ctx.moveTo(0, gy);
@@ -543,7 +544,6 @@ export default {
       ctx.closePath();
       ctx.fill();
 
-      // 4. Organic undulating snowdrift top layer
       ctx.fillStyle = '#eceff4';
       ctx.beginPath();
       ctx.moveTo(0, gy);
@@ -620,75 +620,38 @@ export default {
       if (h <= 0) return;
       const cx = x + w / 2;
 
+      ctx.fillStyle = '#81a1c1';
+      ctx.fillRect(x, py, w, h);
+      ctx.fillStyle = '#5e81ac';
+      ctx.fillRect(x + w - 10, py, 10, h);
+      ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
+      ctx.fillRect(x + 5, py, 6, h);
+      ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
+      ctx.fillRect(x + 14, py, 2, h);
+
       if (isTop) {
-        const colH = Math.max(0, h - tipH);
-        const ts = py + colH;
-        const tip = py + h;
-
-        ctx.save();
-        // Multi-pronged jagged icicle polygon (eliminates "pencil" silhouette while keeping exact hitbox)
-        ctx.beginPath();
-        ctx.moveTo(x - 2, py);
-        ctx.lineTo(x + w + 2, py);
-        ctx.lineTo(x + w * 0.94, ts * 0.85 + py * 0.15);
-        ctx.lineTo(x + w * 0.82, Math.min(tip - 6, ts + tipH * 0.55));
-        ctx.lineTo(x + w * 0.68, ts);
-        ctx.lineTo(cx, tip);
-        ctx.lineTo(x + w * 0.32, ts);
-        ctx.lineTo(x + w * 0.18, Math.min(tip - 5, ts + tipH * 0.6));
-        ctx.lineTo(x + w * 0.06, ts * 0.85 + py * 0.15);
-        ctx.closePath();
-
-        ctx.fillStyle = '#81a1c1';
-        ctx.fill();
-        ctx.clip();
-
-        // Right-edge shadow strip tapering toward main tip
-        ctx.fillStyle = '#5e81ac';
-        ctx.beginPath();
-        ctx.moveTo(x + w - 10, py);
-        ctx.lineTo(x + w + 2, py);
-        ctx.lineTo(x + w, ts + tipH);
-        ctx.lineTo(cx, tip);
-        ctx.lineTo(cx - 4, tip);
-        ctx.lineTo(x + w - 11, ts);
-        ctx.closePath();
-        ctx.fill();
-
-        // Left ice highlight strip
-        ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
-        ctx.beginPath();
-        ctx.moveTo(x + 4, py);
-        ctx.lineTo(x + 11, py);
-        ctx.lineTo(x + 12, ts);
-        ctx.lineTo(cx - 8, tip);
-        ctx.lineTo(cx - 11, tip);
-        ctx.lineTo(x + 5, ts);
-        ctx.closePath();
-        ctx.fill();
-
-        // Subtle inner vertical glint
-        ctx.fillStyle = 'rgba(236, 239, 244, 0.28)';
-        ctx.fillRect(x + 14, py, 2, h);
-
-        // Top ceiling snow overhang
+        const capY = py + h - 11;
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
-        ctx.roundRect(x - 3, py, w + 6, 8, [0, 0, 4, 4]);
+        ctx.roundRect(x - 3, capY, w + 6, 11, [3, 3, 5, 5]);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + 9, capY, 3.5, 0, Math.PI * 2);
+        ctx.arc(cx + 5, capY - 1, 4, 0, Math.PI * 2);
+        ctx.arc(x + w - 8, capY, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#d8dee9';
+        ctx.beginPath();
+        ctx.roundRect(x + w - 10, capY, 13, 10, [0, 3, 5, 0]);
         ctx.fill();
 
-        ctx.restore();
+        ctx.fillStyle = '#eceff4';
+        ctx.beginPath();
+        ctx.ellipse(x + 6, py - 1, 9, 4.5, 0, 0, Math.PI);
+        ctx.ellipse(cx, py - 1, 14, 5.5, 0, 0, Math.PI);
+        ctx.ellipse(x + w - 6, py - 1, 9, 4.5, 0, 0, Math.PI);
+        ctx.fill();
       } else {
-        ctx.fillStyle = '#81a1c1';
-        ctx.fillRect(x, py, w, h);
-        ctx.fillStyle = '#5e81ac';
-        ctx.fillRect(x + w - 10, py, 10, h);
-        ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
-        ctx.fillRect(x + 5, py, 6, h);
-        ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
-        ctx.fillRect(x + 14, py, 2, h);
-
-        // Top snow cap on bottom pillar
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
         ctx.roundRect(x - 3, py, w + 6, 11, [5, 5, 3, 3]);
@@ -703,7 +666,6 @@ export default {
         ctx.roundRect(x + w - 10, py + 1, 13, 10, [0, 5, 3, 0]);
         ctx.fill();
 
-        // Base snow mound anchoring the pillar into the ground
         const baseY = py + h;
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
@@ -715,17 +677,9 @@ export default {
     }
 
     function hitsTopPipe(p, pX, py, pSize, pipeW) {
-      const bx0 = pX + 3, bx1 = pX + pSize - 3;
-      const ty = py + 3;
-      if (ty >= p.top) return false;
-      const cx = p.x + pipeW / 2;
-      const tipStart = p.top - tipH;
-      if (ty < tipStart) {
-        return bx1 > p.x - 2 && bx0 < p.x + pipeW + 2;
-      }
-      const f = (p.top - ty) / tipH;
-      const hw = (pipeW / 2) * f + 2;
-      return bx1 > cx - hw && bx0 < cx + hw;
+      return pX + pSize - 3 > p.x - 2 &&
+             pX + 3 < p.x + pipeW + 2 &&
+             py + 3 < p.top;
     }
 
     function drawMuteButton() {
@@ -776,19 +730,11 @@ export default {
       ctx.save();
       ctx.textAlign = 'center';
 
-      ctx.shadowColor = 'rgba(36, 41, 51, 0.85)';
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = '#eceff4';
-      ctx.font = '700 28px system-ui, sans-serif';
-      ctx.fillText('Get Ready!', W / 2, 118);
-
-      const bob = Math.sin(frame * 0.08) * 4;
-      const boxW = 210;
+      const boxW = 140;
       const boxH = 34;
       const boxX = (W - boxW) / 2;
-      const boxY = 250 + bob;
+      const boxY = 260;
 
-      ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(59, 66, 82, 0.85)';
       ctx.beginPath();
       ctx.roundRect(boxX, boxY, boxW, boxH, 8);
@@ -799,7 +745,7 @@ export default {
 
       ctx.fillStyle = '#88c0d0';
       ctx.font = '600 13px system-ui, sans-serif';
-      ctx.fillText('Space / Click / Tap to Flap', W / 2, boxY + 21);
+      ctx.fillText('Tap to Flap', W / 2, boxY + 21);
 
       ctx.restore();
     }
@@ -916,17 +862,17 @@ export default {
       if (!started) {
         frame++;
         groundOffset -= 1.2;
-        y = 185 + Math.sin(frame * 0.08) * 7;
+        y = 205 + Math.sin(frame * 0.08) * 7;
       } else if (!crashed) {
         vel += gravity;
         y += vel;
         frame++;
         groundOffset -= speed;
 
-        if (frame % 92 === 0) {
-          let gap = 128;
-          let minTop = 48;
-          let maxTop = playHeight - gap - 48;
+        if (frame % 98 === 0) {
+          let gap = 132;
+          let minTop = 52;
+          let maxTop = playHeight - gap - 52;
           let topH = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
           pipes.push({ x: W + 10, top: topH, bottom: topH + gap, passed: false });
         }
@@ -938,7 +884,6 @@ export default {
 
       drawGround();
 
-      const pX = 95, pSize = 26, pipeW = 48;
       for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
         if (started && !crashed) p.x -= speed;
