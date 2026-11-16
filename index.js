@@ -90,6 +90,17 @@ export default {
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
+    const nowDate = new Date();
+    const isBirthday = (nowDate.getMonth() === 0 && nowDate.getDate() === 22);
+    const confettiPalette = ['191, 97, 106', '235, 203, 139', '163, 190, 140', '136, 192, 208'];
+    const bdayNotes = [
+      261.63, 261.63, 293.66, 261.63, 349.23, 329.63,
+      261.63, 261.63, 293.66, 261.63, 392.00, 349.23,
+      261.63, 261.63, 523.25, 440.00, 349.23, 329.63, 293.66,
+      466.16, 466.16, 440.00, 349.23, 392.00, 349.23
+    ];
+    let noteIndex = 0;
+
     const H = 480;
     let W = 800;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -237,14 +248,27 @@ export default {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(987.77, now);
-      osc.frequency.setValueAtTime(1318.51, now + 0.075);
-      gain.gain.setValueAtTime(0.09, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.24);
+
+      if (isBirthday) {
+        const freq = bdayNotes[noteIndex % bdayNotes.length];
+        noteIndex++;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.11, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.28);
+      } else {
+        osc.frequency.setValueAtTime(987.77, now);
+        osc.frequency.setValueAtTime(1318.51, now + 0.075);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.24);
+      }
     }
 
     function playCrashSound() {
@@ -281,20 +305,24 @@ export default {
 
     function spawnSnowBurst(bx, by, count) {
       for (let i = 0; i < count; i++) {
+        const rgb = isBirthday
+          ? confettiPalette[Math.floor(Math.random() * confettiPalette.length)]
+          : '236, 239, 244';
         particles.push({
           x: bx,
           y: by,
           vx: (Math.random() - 0.5) * 4.5,
           vy: (Math.random() - 0.5) * 4.5 - 1,
           r: Math.random() * 2.5 + 1,
-          life: 1.0
+          life: 1.0,
+          rgb: rgb
         });
       }
     }
 
     function reset() {
       y = 205; vel = 0; pipes = []; particles = [];
-      frame = 0; score = 0;
+      frame = 0; score = 0; noteIndex = 0;
       gameOver = false; started = true; crashed = false; isNewBest = false;
       scorePop = 0; shakeT = 0;
       vel = jump;
@@ -618,6 +646,34 @@ export default {
       ctx.beginPath();
       ctx.ellipse(-3, 2, 7, 3.8, wingAngle, 0, Math.PI * 2);
       ctx.fill();
+
+      if (isBirthday) {
+        ctx.save();
+        ctx.translate(-1, -11);
+        ctx.rotate(-0.15);
+
+        ctx.fillStyle = '#ebcb8b';
+        ctx.beginPath();
+        ctx.moveTo(-6, 0);
+        ctx.lineTo(6, 0);
+        ctx.lineTo(0, -13);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#bf616a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-3.5, -5.5);
+        ctx.lineTo(3.5, -5.5);
+        ctx.stroke();
+
+        ctx.fillStyle = '#eceff4';
+        ctx.beginPath();
+        ctx.arc(0, -14, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
       ctx.restore();
     }
 
@@ -921,7 +977,7 @@ export default {
         if (pt.life <= 0) {
           particles.splice(i, 1);
         } else {
-          ctx.fillStyle = 'rgba(236, 239, 244, ' + pt.life + ')';
+          ctx.fillStyle = 'rgba(' + (pt.rgb || '236, 239, 244') + ', ' + pt.life + ')';
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
           ctx.fill();
