@@ -328,11 +328,11 @@ export default {
       }
     }
 
-    function triggerCrash() {
+    function triggerCrash(fromGround = false) {
       if (!crashed) {
         crashed = true;
         if (!reduceMotion) shakeT = 1;
-        vel = -2.5;
+        vel = fromGround ? 0 : -2.5;
         playCrashSound();
         spawnSnowBurst(110, y + 14, 14);
         if (score > best) {
@@ -377,7 +377,6 @@ export default {
       }
     }, { passive: false });
 
-    // Pre-rendered aurora layer
     const aurora = (() => {
       const AW = 480, AH = 190;
       const c = document.createElement('canvas');
@@ -533,14 +532,16 @@ export default {
       ctx.fillStyle = '#88c0d0';
       ctx.fillRect(0, gy + 8, W, 3);
 
+      // Snow layer anchored seamlessly from gy down to the ice trim
       ctx.fillStyle = '#e5e9f0';
       ctx.beginPath();
-      ctx.moveTo(0, gy + 9);
-      for (let x = 0; x <= W; x += 4) {
-        const ph = x - groundOffset;
-        ctx.lineTo(x, gy + 4.5 + Math.sin(ph * 0.07) * 2.2 + Math.sin(ph * 0.19) * 1);
-      }
+      ctx.moveTo(0, gy);
+      ctx.lineTo(W, gy);
       ctx.lineTo(W, gy + 9);
+      for (let x = W; x >= 0; x -= 4) {
+        const ph = x - groundOffset;
+        ctx.lineTo(x, gy + 5.5 + Math.sin(ph * 0.07) * 2.0 + Math.sin(ph * 0.19) * 0.9);
+      }
       ctx.closePath();
       ctx.fill();
 
@@ -550,8 +551,16 @@ export default {
     function drawPenguin(x, py) {
       ctx.save();
       ctx.translate(x + 15, py + 14);
-      let angle = crashed ? Math.min(Math.PI / 2, vel * 0.09) : Math.max(-0.35, Math.min(0.45, vel * 0.055));
-      if (!started) angle = Math.sin(frame * 0.08) * 0.08;
+      let angle;
+      if (!started) {
+        angle = Math.sin(frame * 0.08) * 0.08;
+      } else if (gameOver) {
+        angle = Math.PI / 2;
+      } else if (crashed) {
+        angle = Math.min(Math.PI / 2, Math.max(0.35, vel * 0.11));
+      } else {
+        angle = Math.max(-0.35, Math.min(0.45, vel * 0.055));
+      }
       ctx.rotate(angle);
 
       ctx.fillStyle = '#d08770';
@@ -601,12 +610,12 @@ export default {
       const cx = x + w / 2;
 
       if (isTop) {
-        const effTipH = Math.min(tipH, h);
-        const colH = h - effTipH;
+        const colH = Math.max(0, h - tipH);
         const ts = py + colH;
         const tip = py + h;
 
         ctx.save();
+        // Single unified polygon for the entire icicle
         ctx.beginPath();
         ctx.moveTo(x, py);
         ctx.lineTo(x + w, py);
@@ -619,45 +628,36 @@ export default {
         ctx.fill();
         ctx.clip();
 
-        // Kesintisiz sağ gölge
+        // Proportional right-edge shadow strip tapering cleanly to the tip
         ctx.fillStyle = '#5e81ac';
         ctx.beginPath();
         ctx.moveTo(x + w - 10, py);
         ctx.lineTo(x + w, py);
         ctx.lineTo(x + w, ts);
         ctx.lineTo(cx, tip);
-        ctx.lineTo(cx, ts);
+        ctx.lineTo(cx - 4, tip);
         ctx.lineTo(x + w - 10, ts);
         ctx.closePath();
         ctx.fill();
 
-        // Kesintisiz buz parıltısı
+        // Left ice highlight strip tapering cleanly toward the tip
         ctx.fillStyle = 'rgba(143, 188, 187, 0.65)';
         ctx.beginPath();
         ctx.moveTo(x + 5, py);
         ctx.lineTo(x + 11, py);
         ctx.lineTo(x + 11, ts);
-        ctx.lineTo(cx - 2, tip);
-        ctx.lineTo(cx - 5, tip);
+        ctx.lineTo(cx - 8, tip);
+        ctx.lineTo(cx - 11, tip);
         ctx.lineTo(x + 5, ts);
         ctx.closePath();
         ctx.fill();
 
-        // İnce ışık çizgisi
+        // Inner vertical highlight line
         ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
-        ctx.beginPath();
-        ctx.moveTo(x + 14, py);
-        ctx.lineTo(x + 16, py);
-        ctx.lineTo(x + 16, ts);
-        ctx.lineTo(cx - 0.5, tip);
-        ctx.lineTo(cx - 1.5, tip);
-        ctx.lineTo(x + 14, ts);
-        ctx.closePath();
-        ctx.fill();
+        ctx.fillRect(x + 14, py, 2, h);
 
         ctx.restore();
       } else {
-        ctx.save();
         ctx.fillStyle = '#81a1c1';
         ctx.fillRect(x, py, w, h);
         ctx.fillStyle = '#5e81ac';
@@ -667,7 +667,6 @@ export default {
         ctx.fillStyle = 'rgba(236, 239, 244, 0.25)';
         ctx.fillRect(x + 14, py, 2, h);
 
-        // Kar şapkası ve gölgesi
         ctx.fillStyle = '#eceff4';
         ctx.beginPath();
         ctx.roundRect(x - 3, py, w + 6, 11, [5, 5, 3, 3]);
@@ -677,46 +676,25 @@ export default {
         ctx.arc(cx + 5, py + 12, 4, 0, Math.PI * 2);
         ctx.arc(x + w - 8, py + 11, 3, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.fillStyle = '#d8dee9';
         ctx.beginPath();
         ctx.roundRect(x + w - 10, py + 1, 13, 10, [0, 5, 3, 0]);
         ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x + w - 8, py + 11, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
       }
     }
 
-    // Görsel sınırlarla birebir uyumlu çarpışma kontrolü
-    function hitsPipe(p, pX, py, pSize, pipeW) {
-      // Penguenin görsel elipsine yakın daraltılmış çarpışma kutusu
-      const bx0 = pX + 4;
-      const bx1 = pX + pSize - 2;
-      const by0 = py + 3;
-      const by1 = py + pSize - 2;
-
-      // Alt engel kontrolü
-      if (bx1 > p.x && bx0 < p.x + pipeW && by1 > p.bottom) {
-        return true;
+    function hitsTopPipe(p, pX, py, pSize, pipeW) {
+      const bx0 = pX + 3, bx1 = pX + pSize - 3;
+      const ty = py + 3;
+      if (ty >= p.top) return false;
+      const cx = p.x + pipeW / 2;
+      const tipStart = p.top - tipH;
+      if (ty < tipStart) {
+        return bx1 > p.x - 2 && bx0 < p.x + pipeW + 2;
       }
-
-      // Üst engel kontrolü (eğimli uç dahil)
-      if (by0 < p.top) {
-        const effTipH = Math.min(tipH, p.top);
-        const tipStart = p.top - effTipH;
-        const cx = p.x + pipeW / 2;
-
-        if (by0 < tipStart) {
-          return bx1 > p.x && bx0 < p.x + pipeW;
-        }
-        const f = (p.top - by0) / effTipH;
-        const hw = (pipeW / 2) * f;
-        return bx1 > cx - hw && bx0 < cx + hw;
-      }
-
-      return false;
+      const f = (p.top - ty) / tipH;
+      const hw = (pipeW / 2) * f + 2;
+      return bx1 > cx - hw && bx0 < cx + hw;
     }
 
     function drawMuteButton() {
@@ -936,8 +914,10 @@ export default {
         drawIceBlockPipe(p.x, p.bottom, pipeW, playHeight - p.bottom, false);
 
         if (!crashed) {
-          if (hitsPipe(p, pX, y, pSize, pipeW)) {
-            triggerCrash();
+          const hitBottom = pX + pSize - 3 > p.x - 2 && pX + 3 < p.x + pipeW + 2 &&
+                            y + pSize - 3 > p.bottom;
+          if (hitBottom || hitsTopPipe(p, pX, y, pSize, pipeW)) {
+            triggerCrash(false);
           }
           if (!p.passed && p.x + pipeW < pX) {
             score++;
@@ -968,7 +948,7 @@ export default {
 
       if (y + pSize >= playHeight) {
         y = playHeight - pSize;
-        if (!crashed) triggerCrash();
+        if (!crashed) triggerCrash(true);
         gameOver = true;
       }
       if (y < 0) {
